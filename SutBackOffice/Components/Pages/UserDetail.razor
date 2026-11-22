@@ -1,0 +1,136 @@
+@page "/users/{Id}"
+@inject ShellState Shell
+@inject NavigationManager Nav
+
+<PageTitle>ข้อมูลโปรไฟล์นักศึกษา 360 องศา · SUT Freelance</PageTitle>
+
+<div class="field-row mb" style="align-items:center">
+    <a href="/users" style="color:var(--on-surface);display:flex;gap:8px;align-items:center;font-weight:600"><Icon Name="arrow-left" Size="16" /> กลับไปยังรายชื่อนักศึกษา</a>
+    <span class="pill blue"><Icon Name="clock" Size="12" /> กิจกรรมล่าสุด: 14 นาทีที่แล้ว (ห้องปฏิบัติการคอมพิวเตอร์ 5)</span>
+</div>
+
+<div class="card profile-card mb">
+    <div class="profile-top">
+        <div class="avatar-wrap"><div class="avatar lg">ธป</div><span class="online"></span></div>
+        <div class="info">
+            <h2>ธนกร ประเสริฐ (Thanakorn Prasert)</h2>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+                <span class="pill green"><Icon Name="shield-check" Size="13" /> นักศึกษา มทส. (ยืนยัน KYC แล้ว)</span>
+                <span class="pill gray">สำนักวิชาวิศวกรรมศาสตร์</span>
+            </div>
+            <div class="id-line"><span class="id-box">รหัสนักศึกษา: @Id</span><span class="muted">ระดับ 1: ผู้รับจ้างที่ได้รับอนุมัติ</span></div>
+        </div>
+        <div class="profile-actions">
+            <button class="btn danger-outline" @onclick="() => showSanction = true"><Icon Name="ban" Size="16" /> ระงับการใช้งานบัญชี</button>
+            <button class="btn outline" @onclick='() => Toast("ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลนักศึกษาแล้ว")'><Icon Name="refresh" Size="16" /> รีเซ็ตรหัสผ่าน</button>
+            <button class="btn primary" @onclick='() => Toast("ส่งข้อความแจ้งเตือน มทส. เรียบร้อยแล้ว")'><Icon Name="mail" Size="16" /> ส่งข้อความแจ้งเตือน มทส.</button>
+        </div>
+    </div>
+    <div class="profile-meta">
+        <div><div class="k">อีเมล มทส.</div><div class="v"><Icon Name="check-circle" Size="14" Class="ok" /> thanakorn.p@g.sut.ac.th</div></div>
+        <div><div class="k">เบอร์โทรศัพท์</div><div class="v">+66 89 123 4567</div></div>
+        <div><div class="k">LINE ID</div><div class="v">@("@thanakorn_dev")</div></div>
+        <div><div class="k">สำนักวิชาและชั้นปี</div><div class="v">สำนักวิชาวิศวกรรมศาสตร์ (คอมพิวเตอร์) ชั้นปีที่ 3</div></div>
+        <div><div class="k">โซนหอพัก มทส.</div><div class="v">หอพัก 4 (ชาย โซน A), ห้อง 312</div></div>
+        <div><div class="k">สถิติคำสั่งจ้างงาน</div><div class="v"><strong style="color:var(--orange);font-size:18px">42 งาน</strong> <span class="muted-sm">(รับจ้าง 38, สั่งจ้าง 4)</span></div></div>
+    </div>
+</div>
+
+<div class="tabs" style="margin:0 0 20px">
+    <button class="tab @(tab == 0 ? "on" : "")" @onclick="() => tab = 0"><Icon Name="building" Size="16" /> ร้านค้าและบริการของฉัน (3)</button>
+    <button class="tab @(tab == 1 ? "on" : "")" @onclick="() => tab = 1"><Icon Name="clipboard" Size="16" /> ประวัติการสั่งจ้างงาน (42)</button>
+    <button class="tab @(tab == 2 ? "on" : "")" @onclick="() => tab = 2"><Icon Name="star" Size="16" /> รีวิวและคะแนนที่ได้รับ (4.9 ★ / 38 รีวิว)</button>
+    <button class="tab @(tab == 3 ? "on" : "")" @onclick="() => tab = 3"><Icon Name="flag" Size="16" /> ประวัติการถูกรายงาน (0 ครั้ง)</button>
+</div>
+
+<div class="grid g3-1">
+    <div>
+        @if (tab == 0)
+        {
+            <div class="store-card mb">
+                <div class="store-logo"><Icon Name="code" Size="26" /></div>
+                <div class="grow" style="flex:1">
+                    <h2 style="font-size:20px">CodeSUT Studio <span class="pill green" style="font-size:11px;margin-left:8px">สถานะร้าน: เปิดให้บริการปกติ</span></h2>
+                    <p class="muted" style="margin-top:4px">เชี่ยวชาญการเขียนสคริปต์ Python, การแก้บั๊ก, การจัดรูปแบบวิทยานิพนธ์ด้วย LaTeX, โครงงานฮาร์ดแวร์ไมโครคอนโทรลเลอร์ Arduino และติวเตอร์แล็บคอมพิวเตอร์ใน มทส.</p>
+                </div>
+                <a class="btn outline" href="/audit">ประวัติการทำงานร้านค้า</a>
+            </div>
+
+            <div class="field-row" style="margin-bottom:12px">
+                <h2 class="card-title">บริการที่เปิดรับจ้าง (3)</h2>
+                <label class="muted-sm">เรียงตาม: <select class="select sm"><option>งานที่สำเร็จมากที่สุด</option><option>อัปเดตล่าสุด</option></select></label>
+            </div>
+            @foreach (var g in gigs)
+            {
+                <div class="gig-card">
+                    <div class="gig-ico @g.Tone"><Icon Name="@g.Icon" Size="24" /></div>
+                    <div class="grow">
+                        <strong style="font-size:16px">@g.Title</strong> <span class="pill green" style="font-size:11px">@(g.Paused ? "พักการรับงาน" : "เปิดรับงาน")</span>
+                        <div style="margin-top:6px"><span class="price">@g.Price</span> <span class="muted-sm">/ @g.Unit</span> &nbsp;•&nbsp; <span class="stars"><Icon Name="star" Size="13" /> @g.Rating (@g.Reviews รีวิว)</span></div>
+                        <div class="muted" style="margin-top:4px">สำเร็จแล้ว @g.Orders งาน</div>
+                    </div>
+                    <button class="btn ghost" @onclick="() => g.Paused = !g.Paused">@(g.Paused ? "เปิดรับงานอีกครั้ง" : "หยุดรับงานชั่วคราว")</button>
+                    <a class="btn dark" href="/services">ดูหน้าร้านค้า <Icon Name="external" Size="14" /></a>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="card card-pad empty">ข้อมูลแท็บนี้จะเชื่อมต่อจาก API ประวัติคำสั่งจ้าง รีวิว และรายงานข้อพิพาทในเฟสเชื่อมต่อ Backend API</div>
+        }
+    </div>
+
+    <div class="right-col">
+        <div class="card card-pad mb">
+            <div class="field-row"><h2 class="card-title">คะแนนความน่าเชื่อถือของบัญชี</h2><Icon Name="shield-check" Size="20" Class="ok" /></div>
+            <div style="display:flex;align-items:center;gap:12px;margin:6px 0 10px"><span class="health-score">98</span><span class="muted">/ 100</span><span class="spacer"></span><span class="pill green">ความน่าเชื่อถือระดับดีเยี่ยม</span></div>
+            <div class="progress" style="height:10px"><i style="width:98%;background:var(--green)"></i></div>
+            <div class="kv-line" style="margin-top:14px"><span>อัตราการส่งงานตรงเวลา</span><strong>100% (38/38)</strong></div>
+            <div class="kv-line"><span>อัตราการเกิดข้อพิพาท / ถูกรายงาน</span><strong style="color:var(--green-700)">0.00% (0)</strong></div>
+            <div class="kv-line"><span>การปฏิบัติตามกฎจรรยาบรรณ มทส.</span><strong>ผ่านเกณฑ์ (ต.ค. 2567)</strong></div>
+        </div>
+
+        <div class="card card-pad mb">
+            <div class="field-row"><h2 class="card-title">ข้อมูลทางการเงินและบัญชี</h2><Icon Name="wallet" Size="20" Class="bad" /></div>
+            <div class="money" style="margin-top:12px"><small>รายได้สะสมที่โอนแล้ว</small><strong>14,800 <span style="font-size:14px;font-weight:500">บาท</span></strong></div>
+            <div class="money hold"><small style="color:var(--amber-700)">ยอดเงินที่ถูกพักในระบบ (ESCROW)</small><strong style="font-size:20px;color:var(--amber-700)">1,200 บาท</strong></div>
+            <div class="field-row" style="margin:14px 0 8px"><span class="muted-sm">ช่องทางรับเงินที่ยืนยันแล้ว</span><span class="pill green" style="font-size:11px">ตรวจสอบแล้ว</span></div>
+            <div style="border:1px solid var(--outline);border-radius:var(--radius);padding:12px;display:flex;gap:12px;align-items:center">
+                <span class="pill purple" style="border-radius:4px">SCB</span>
+                <div><strong>ธนาคารไทยพาณิชย์ (SCB)</strong><div>089-XXX-4567</div><div class="muted-sm">พร้อมเพย์นักศึกษา มทส. ผูกกับบัญชีกลาง</div></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px"><button class="btn soft block">ดาวน์โหลดรายการเดินบัญชี (Statements)</button><button class="btn outline" aria-label="ดาวน์โหลด"><Icon Name="download" Size="16" /></button></div>
+        </div>
+
+        <div class="card card-pad">
+            <h2 class="card-title">คำสั่งด่วนสำหรับเจ้าหน้าที่</h2>
+            <button class="quick" @onclick='() => Toast("ส่งคำขอตรวจสอบเอกสารบัตรประชาชนเพิ่มเติมแล้ว")'><span><Icon Name="id-card" Size="16" /> ขอตรวจสอบเอกสารบัตรประชาชน / ภาษีเพิ่มเติม</span><Icon Name="chevron-right" Size="14" /></button>
+            <button class="quick" @onclick='() => Toast("เปิดหน้าต่างแนบบันทึกภายในฝ่ายทะเบียนแล้ว")'><span><Icon Name="edit" Size="16" /> แนบข้อความบันทึกภายในฝ่ายทะเบียนและวินัย</span><Icon Name="chevron-right" Size="14" /></button>
+        </div>
+    </div>
+</div>
+
+<SanctionModal @bind-Show="showSanction" TargetName="ธนกร ประเสริฐ" TargetId="@Id" TargetRole="ผู้ให้บริการฟรีแลนซ์นักศึกษา (3 งานที่เปิดรับจ้าง)" TargetEmail="@($"{Id.ToLower()}@g.sut.ac.th")" OnConfirmed="OnSanction" />
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    class Gig { public string Title = "", Price = "", Unit = "", Icon = "", Tone = ""; public double Rating; public int Reviews, Orders; public bool Paused; }
+
+    List<Gig> gigs = new()
+    {
+        new() { Title="เขียนสคริปต์ Python และระบบประมวลผลข้อมูลอัตโนมัติ", Price="350 บาท", Unit="งาน", Icon="code", Tone="", Rating=5.0, Reviews=14, Orders=18 },
+        new() { Title="จัดรูปแบบเอกสารและวิทยานิพนธ์ LaTeX ตามฟอร์แมต มทส.", Price="200 บาท", Unit="เอกสาร", Icon="file", Tone="blue", Rating=4.9, Reviews=11, Orders=12 },
+        new() { Title="แก้ปัญหาและเขียนโค้ดบอร์ด Arduino / ESP32 พร้อมลงบอร์ดทดลอง", Price="500 บาท", Unit="ครั้ง", Icon="cpu", Tone="green", Rating=4.8, Reviews=7, Orders=8 },
+    };
+
+    int tab;
+    bool showSanction;
+    string? toast;
+
+    void OnSanction(string d) => Toast($"บันทึกคำสั่งลงโทษ ({(d == "perm" ? "ระงับถาวร" : $"ระงับ {d} วัน")}) ลงในระบบ Audit Trail แล้ว");
+    void Toast(string m) { toast = m; _ = Task.Delay(2500).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "การจัดการผู้ใช้", "รายชื่อนักศึกษา", $"{Id} (ธนกร ประเสริฐ)" }, "ค้นหารหัสนักศึกษา หรือชื่อ-นามสกุล...");
+}

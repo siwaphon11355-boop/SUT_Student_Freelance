@@ -1,0 +1,9 @@
+<div class="chips" style="margin-bottom:16px">
+    <NavLink class="chip" href="/moderation" Match="NavLinkMatch.All">ตรวจสอบรีวิวและความปลอดภัย</NavLink>
+    <NavLink class="chip" href="/moderation/content">ตรวจสอบรูปภาพผลงานและพอร์ตโฟลิโอ</NavLink>
+    <NavLink class="chip" href="/moderation/reports">ศูนย์จัดการข้อพิพาทและรายงานความไม่เหมาะสม</NavLink>
+</div>
+
+@code {
+    [Parameter] public string Active { get; set; } = "reviews";
+}

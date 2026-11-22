@@ -1,0 +1,66 @@
+@page "/providers"
+@inject ShellState Shell
+@inject NavigationManager Nav
+
+<PageTitle>รายชื่อผู้ให้บริการฟรีแลนซ์ · SUT Freelance</PageTitle>
+
+<PageHeader Title="รายชื่อผู้ให้บริการฟรีแลนซ์" Badge="482 ร้านค้า" BadgeKind="orange">
+    <a class="btn outline" href="/providers/verify"><Icon Name="shield-check" Size="16" /> คิวตรวจบัตรนักศึกษา</a>
+    <button class="btn outline"><Icon Name="download" Size="16" /> ส่งออก CSV</button>
+    <button class="btn primary" @onclick='() => Toast("เปิดหน้าต่างตั้งค่าอัตราคอมมิชชันรวมแล้ว")'><Icon Name="filter" Size="16" /> ตั้งค่าคอมมิชชัน</button>
+</PageHeader>
+
+<div class="card mb">
+    <div class="filter-bar">
+        <label class="search-box"><Icon Name="search" Size="16" /><input placeholder="ค้นหาชื่อร้านค้า หรือชื่อผู้ให้บริการ..." @bind="search" @bind:event="oninput" /></label>
+        <select class="select" @bind="cat"><option value="">หมวดหมู่ทั้งหมด</option>@foreach (var c in cats) { <option>@c</option> }</select>
+        <select class="select" @bind="minRating"><option value="0">คะแนนเฉลี่ย: ทั้งหมด</option><option value="4">4.0 ดาวขึ้นไป</option><option value="4.8">4.8 ดาวขึ้นไป</option></select>
+        <select class="select" @bind="status"><option value="">สถานะทั้งหมด</option><option>อนุมัติแล้ว</option><option>รอการตรวจสอบ</option><option>ระงับชั่วคราว</option></select>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>ชื่อร้านค้า</th><th>ผู้ให้บริการ</th><th>หมวดหมู่หลัก</th><th>บริการ</th><th>งานที่สำเร็จ</th><th>คะแนนเฉลี่ย</th><th>สถานะ</th><th class="right">การจัดการ</th></tr></thead>
+            <tbody>
+                @foreach (var p in items)
+                {
+                    <tr>
+                        <td style="white-space:nowrap"><div class="shop-cell"><span class="shop-ico"><Icon Name="@p.Icon" Size="18" /></span><strong>@p.Shop</strong></div></td>
+                        <td style="white-space:nowrap"><strong>@p.Owner</strong></td>
+                        <td style="white-space:nowrap"><span class="tag">@p.Category</span></td>
+                        <td style="white-space:nowrap">@p.Gigs รายการ</td>
+                        <td style="white-space:nowrap">@p.Orders งาน</td>
+                        <td style="white-space:nowrap"><span class="stars"><Icon Name="star" Size="13" /> <strong style="color:var(--on-surface)">@p.Rating.ToString("0.0#")</strong> <span class="muted-sm">(@p.Reviews)</span></span></td>
+                        <td style="white-space:nowrap"><span class="pill @Kind(p.Status) dotted">@p.Status</span></td>
+                        <td><div class="row-actions">
+                            @if (p.Status == "รอการตรวจสอบ") { <a class="btn primary sm" href="/providers/verify/@p.StudentId">ตรวจสิทธิ์</a> }
+                            else { <a class="btn outline sm" href="/users/@p.StudentId">ดูร้านค้า</a> }
+                        </div></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <Pager Info="แสดง 1-10 จาก 482 ร้านค้าฟรีแลนซ์ที่ผ่านการอนุมัติ" @bind-Page="page" TotalPages="49" />
+</div>
+
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    List<ProviderStore> all = MockData.Providers();
+    string search = "", cat = "", status = "", toast;
+    string minRating = "0";
+    int page = 1;
+    string[] cats => all.Select(a => a.Category).Distinct().ToArray();
+
+    List<ProviderStore> items => all.Where(p =>
+        (string.IsNullOrWhiteSpace(search) || p.Shop.Contains(search, StringComparison.OrdinalIgnoreCase) || p.Owner.Contains(search, StringComparison.OrdinalIgnoreCase) || p.StudentId.Contains(search, StringComparison.OrdinalIgnoreCase)) &&
+        (cat == "" || p.Category == cat) && (status == "" || p.Status == status) && p.Rating >= double.Parse(minRating, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+
+    static string Kind(string s) => s switch { "อนุมัติแล้ว" => "green", "รอการตรวจสอบ" => "amber", _ => "red" };
+    void Toast(string m) { toast = m; _ = Task.Delay(2500).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "การจัดการผู้ให้บริการ", "รายชื่อร้านค้าฟรีแลนซ์" }, "ค้นหารหัสนักศึกษา หรือชื่อ-นามสกุล, ชื่อร้านค้า...");
+}

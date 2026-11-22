@@ -1,0 +1,79 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ShellState Shell
+@inject NavigationManager Nav
+
+<div class="app">
+    <aside class="dock">
+        <a class="dock-logo" href="/dashboard" data-tip="SUT Freelance">
+            <Icon Name="shield" Size="24" />
+        </a>
+
+        <NavLink class="dock-nav" href="/dashboard" Match="NavLinkMatch.All" data-tip="แดชบอร์ดภาพรวม">
+            <Icon Name="dashboard" Size="20" />
+        </NavLink>
+        <NavLink class="dock-nav" href="/users" data-tip="จัดการข้อมูลผู้ใช้">
+            <Icon Name="users" Size="20" />
+        </NavLink>
+        <NavLink class="dock-nav" href="/providers" data-tip="ตรวจสอบและอนุมัติร้านค้า (18)">
+            <Icon Name="shield-check" Size="20" />
+        </NavLink>
+        <NavLink class="dock-nav" href="/services" data-tip="รายการบริการทั้งหมด">
+            <Icon Name="list" Size="20" />
+        </NavLink>
+        <NavLink class="dock-nav" href="/analytics" data-tip="วิเคราะห์ความรู้สึก AI">
+            <Icon Name="trend" Size="20" />
+        </NavLink>
+        <NavLink class="dock-nav" href="/moderation" data-tip="ตรวจสอบเนื้อหาและรีวิว (23)">
+            <Icon Name="gavel" Size="20" />
+        </NavLink>
+        <NavLink class="dock-nav" href="/settings" data-tip="ตั้งค่าระบบ">
+            <Icon Name="settings" Size="20" />
+        </NavLink>
+
+        <div class="sp"></div>
+
+        <NavLink class="dock-nav" href="/audit" data-tip="ความปลอดภัยของระบบ">
+            <Icon Name="shield" Size="20" />
+        </NavLink>
+    </aside>
+
+    <main class="main">
+        <header class="top">
+            <label class="top-search-v2">
+                <Icon Name="search" Size="18" />
+                <input type="text" placeholder="@Shell.SearchPlaceholder" aria-label="ค้นหา" />
+            </label>
+            <div class="sp"></div>
+            <button class="top-ic" title="การแจ้งเตือน" aria-label="การแจ้งเตือน">
+                <Icon Name="bell" Size="20" />
+                <span class="top-badge">5</span>
+            </button>
+            <button class="top-ic" title="คู่มือการใช้งาน" aria-label="ช่วยเหลือ">
+                <Icon Name="help" Size="20" />
+            </button>
+            <div class="top-me">
+                <div class="top-av">พช</div>
+                <div>
+                    <b>ดร. พรชัย ก.</b>
+                    <small>ผู้ดูแลระบบระดับสูง</small>
+                </div>
+            </div>
+            <button class="top-ic" title="ออกจากระบบ" aria-label="ออกจากระบบ" @onclick='() => Nav.NavigateTo("/")'>
+                <Icon Name="logout" Size="20" />
+            </button>
+        </header>
+
+        <div class="content">
+            @Body
+        </div>
+    </main>
+</div>
+
+@code {
+    protected override void OnInitialized() => Shell.Changed += OnShellChanged;
+
+    void OnShellChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Shell.Changed -= OnShellChanged;
+}

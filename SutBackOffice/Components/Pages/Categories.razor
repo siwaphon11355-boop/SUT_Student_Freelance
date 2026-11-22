@@ -1,0 +1,122 @@
+@page "/services/categories"
+@inject ShellState Shell
+
+<PageTitle>จัดการหมวดหมู่บริการ · SUT Freelance</PageTitle>
+
+<PageHeader Title="จัดการหมวดหมู่บริการ" Subtitle="กำหนดโครงสร้างหมวดหมู่งานฟรีแลนซ์ อัตราค่าธรรมเนียมแพลตฟอร์ม และข้อกำหนดเนื้อหาสำหรับนักศึกษา มทส.">
+    <button class="btn outline"><Icon Name="download" Size="16" /> ส่งออกโครงสร้างหมวดหมู่</button>
+    <button class="btn outline" @onclick="SaveOrder" disabled="@(!dirty)"><Icon Name="check" Size="16" /> บันทึกลำดับการแสดงผล</button>
+    <button class="btn primary" @onclick="AddCategory"><Icon Name="plus" Size="16" /> + เพิ่มหมวดหมู่ใหม่</button>
+</PageHeader>
+
+<div class="grid g4 mb">
+    <div class="card stat"><div class="label">หมวดหมู่หลักทั้งหมด</div><div class="value">8 <small>หมวดหมู่</small></div><div class="icon-box"><Icon Name="list" /></div></div>
+    <div class="card stat"><div class="label">หมวดหมู่ย่อยที่เปิดใช้งาน</div><div class="value">34 <small>หมวดหมู่ย่อย</small></div><div class="icon-box blue"><Icon Name="tag" /></div></div>
+    <div class="card stat"><div class="label">บริการที่เปิดรับจ้างรวม</div><div class="value">856 <small>รายการ</small></div><div class="icon-box green"><Icon Name="building" /></div></div>
+    <div class="card stat"><div class="label">หมวดหมู่ที่ถูกปิดชั่วคราว</div><div class="value">1 <small>หมวดหมู่</small></div><div class="icon-box amber"><Icon Name="eye-off" /></div></div>
+</div>
+
+<div class="grid g3-1">
+    <div class="card">
+        <div class="filter-bar" style="padding:12px 16px;gap:20px;border-bottom:1px solid var(--outline);font-size:12px;color:var(--on-surface-muted)">
+            <strong>ระดับโครงสร้าง: หมวดหมู่หลัก</strong>
+            <span>@rows.Count หมวดหมู่ที่แสดงผล</span>
+            <span class="pill blue" style="border-radius:4px">โหมดจัดเรียง: ลากวาง (Drag &amp; Drop)</span>
+            <span class="spacer"></span>
+            <button class="link-btn" style="color:var(--on-surface)" @onclick="ToggleAll">⇅ @(allOpen ? "ย่อ" : "ขยาย")หมวดหมู่ย่อยทั้งหมด</button>
+        </div>
+        <div class="cat-row head"><span></span><span>ไอคอน &amp; ชื่อหมวดหมู่</span><span>สลัก (Slug)</span><span>บริการที่เปิด</span><span>ค่าธรรมเนียม</span><span>การแสดงผล</span><span>สถานะ</span><span>แก้ไข</span></div>
+
+        @for (var i = 0; i < rows.Count; i++)
+        {
+            var idx = i;
+            var r = rows[i];
+            <div class="cat-row @(dragFrom == idx ? "dragging" : "") @(dragOver == idx && dragFrom != idx ? "over" : "")" draggable="true"
+                 @ondragstart="() => dragFrom = idx" @ondragover="() => dragOver = idx" @ondragover:preventDefault
+                 @ondrop="() => Drop(idx)" @ondragend="() => { dragFrom = dragOver = -1; }">
+                <span class="grip" title="ลากเพื่อจัดลำดับ"><Icon Name="grip" Size="16" /></span>
+                <div class="cat-name">
+                    <button class="icon-btn" style="width:20px;height:20px" @onclick="() => Toggle(r)" aria-label="ขยาย"><Icon Name="@(r.Open ? "chevron-down" : "chevron-right")" Size="14" /></button>
+                    <span class="cat-ico"><Icon Name="@r.Cat.Icon" Size="18" /></span>
+                    <div><strong>@r.Cat.Name</strong><small>@r.Cat.Description</small></div>
+                </div>
+                <span class="slug">@r.Cat.Slug</span>
+                <span><strong>@r.Cat.Gigs</strong> <span class="muted-sm">รายการ</span></span>
+                <span class="fee">@r.Cat.Fee.ToString("0.0")%</span>
+                <Toggle Value="r.Visible" ValueChanged="v => SetVisible(r, v)" />
+                <span><span class="pill @(r.Visible ? "green" : "amber")">@(r.Visible ? "เปิดใช้งาน" : "ซ่อนชั่วคราว")</span></span>
+                <button class="icon-btn" aria-label="แก้ไข"><Icon Name="edit" Size="15" /></button>
+            </div>
+            @if (r.Open && r.Subs.Any())
+            {
+                <div class="subs">
+                    <div class="muted-sm" style="font-weight:700;letter-spacing:.04em;margin-bottom:8px">หมวดหมู่ย่อยภายใต้หมวดนี้:</div>
+                    @foreach (var s in r.Subs)
+                    {
+                        <div class="sub-row">
+                            <span class="nm"><Icon Name="grip" Size="14" /> <strong style="font-weight:600">@s.Name</strong> <span class="slug">@s.Slug</span></span>
+                            <span class="muted">@s.Gigs รายการ</span>
+                            <span class="muted">ค่าธรรมเนียม: @s.Split.ToString("0.0")%</span>
+                            <button class="icon-btn" style="width:24px;height:24px" aria-label="แก้ไข"><Icon Name="edit" Size="13" /></button>
+                        </div>
+                    }
+                    <a class="link-btn" href="#" @onclick:preventDefault><Icon Name="plus" Size="12" /> เพิ่มหมวดหมู่ย่อย</a>
+                </div>
+            }
+        }
+        <div class="pager" style="font-size:12px"><span>คำแนะนำ: คลิกค้างที่ไอคอนจุดด้านซ้ายแล้วลากขึ้น-ลงเพื่อจัดลำดับการแสดงผลบนหน้าแรกของนักศึกษา</span><span>เวอร์ชันหมวดหมู่: v2.4-SUT</span></div>
+    </div>
+
+    <div class="right-col">
+        <div class="card card-pad mb">
+            <div class="field-row"><h2 class="card-title" style="font-size:17px"><Icon Name="gavel" Size="18" Class="bad" /> กฎควบคุมมาตรฐานงานในแคมปัส</h2><span class="pill blue" style="border-radius:4px;font-size:10px">บังคับใช้จริง</span></div>
+            <p class="muted-sm" style="margin-top:12px">ระบบคัดกรองอัตโนมัติเพื่อรักษามาตรฐานทางวิชาการและความปลอดภัยของนักศึกษา มทส.</p>
+            <div class="rule"><div><strong>ตรวจสอบผลการเรียนสำหรับหมวดติว</strong><small>ต้องแนบผลการศึกษาที่ผ่านเกณฑ์ก่อนเปิดรับงานติววิชาการ</small></div><Toggle @bind-Value="ruleFaculty" /></div>
+            <div class="rule"><div><strong>ห้ามรับจ้างทำวิทยานิพนธ์หรือสอบแทน</strong><small>ตรวจจับและระงับประกาศที่มีคีย์เวิร์ด 'รับทำโปรเจกต์จบแทน' หรือ 'สอบแทน' อัตโนมัติ</small></div><Toggle @bind-Value="ruleThesis" /></div>
+            <div class="rule"><div><strong>บัตรอนุญาตเข้าพื้นที่หอพักใน</strong><small>ผู้ให้บริการขนย้ายหอพักต้องผ่านการรับรองจากฝ่ายหอพักนักศึกษา</small></div><Toggle @bind-Value="ruleDorm" /></div>
+        </div>
+
+        <div class="card card-pad">
+            <div class="field-row"><h2 class="card-title" style="font-size:17px">อัตราค่าธรรมเนียมแพลตฟอร์ม</h2><strong>%</strong></div>
+            <p class="muted-sm" style="margin:10px 0">ค่าธรรมเนียมพื้นฐานสำหรับดูแลระบบคุ้มครองเงิน (Escrow) และกองทุนพัฒนานักศึกษา มทส.</p>
+            <div class="field-row" style="margin-top:14px"><strong>ค่าธรรมเนียมมาตรฐาน:</strong><span><input class="input" style="width:80px;text-align:center" type="number" min="0" max="15" step="0.5" @bind="commission" @bind:event="oninput" /> %</span></div>
+            <input type="range" class="range" min="0" max="15" step="0.5" @bind="commission" @bind:event="oninput" style="margin-top:12px" />
+            <div class="field-row muted-sm"><span>0% (อุดหนุนเต็ม)</span><span style="color:var(--orange);font-weight:700">5.0% ค่าเริ่มต้น</span><span>15% (สูงสุด)</span></div>
+            <button class="btn primary block" style="margin-top:16px" @onclick="UpdateFee">อัปเดตอัตราค่าธรรมเนียมกลาง</button>
+        </div>
+    </div>
+</div>
+
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    class Row { public CategoryItem Cat = default!; public List<SubCategory> Subs = new(); public bool Visible; public bool Open; }
+
+    List<Row> rows = MockData.Categories().Select((c, i) => new Row { Cat = c.Cat, Subs = c.Subs, Visible = c.Cat.Visible, Open = i == 0 }).ToList();
+    int dragFrom = -1, dragOver = -1;
+    bool dirty, allOpen;
+    bool ruleFaculty = true, ruleThesis = true, ruleDorm;
+    double commission = 5.0;
+    string? toast;
+
+    void Toggle(Row r) => r.Open = !r.Open;
+    void ToggleAll() { allOpen = !allOpen; rows.ForEach(r => r.Open = allOpen); }
+    void SetVisible(Row r, bool v) { r.Visible = v; dirty = true; }
+    void Drop(int to)
+    {
+        if (dragFrom >= 0 && dragFrom != to)
+        {
+            var item = rows[dragFrom];
+            rows.RemoveAt(dragFrom);
+            rows.Insert(to, item);
+            dirty = true;
+        }
+        dragFrom = dragOver = -1;
+    }
+    void SaveOrder() { dirty = false; Toast("บันทึกลำดับการแสดงผลหมวดหมู่เรียบร้อยแล้ว"); }
+    void AddCategory() => Toast("เปิดฟอร์มเพิ่มหมวดหมู่บริการใหม่แล้ว");
+    void UpdateFee() => Toast($"ปรับอัตราค่าธรรมเนียมกลางเป็น {commission:0.0}% เรียบร้อยแล้ว");
+    void Toast(string m) { toast = m; _ = Task.Delay(2500).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "รายการบริการทั้งหมด", "จัดการหมวดหมู่บริการ" }, "ค้นหาชื่อหมวดหมู่ หรือคำสำคัญ...");
+}

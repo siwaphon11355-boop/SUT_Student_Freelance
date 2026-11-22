@@ -1,0 +1,43 @@
+<div class="pager">
+    <span class="pager-info">@Info</span>
+    <div class="pager-controls">
+        @if (ShowRows)
+        {
+            <label class="rows-label">จำนวนแถวต่อหน้า: <select class="select sm" @onchange="OnRows"><option>10 รายการ</option><option>25 รายการ</option><option>50 รายการ</option></select></label>
+        }
+        <button class="page-btn" disabled="@(Page <= 1)" @onclick="() => Go(Page - 1)">ก่อนหน้า</button>
+        @foreach (var p in Pages())
+        {
+            if (p < 0) { <span class="page-gap">…</span> }
+            else { var n = p; <button class="page-btn @(n == Page ? "active" : "")" @onclick="() => Go(n)">@n</button> }
+        }
+        <button class="page-btn" disabled="@(Page >= TotalPages)" @onclick="() => Go(Page + 1)">ถัดไป</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Info { get; set; } = "";
+    [Parameter] public int Page { get; set; } = 1;
+    [Parameter] public EventCallback<int> PageChanged { get; set; }
+    [Parameter] public int TotalPages { get; set; } = 1;
+    [Parameter] public bool ShowRows { get; set; } = true;
+
+    void OnRows(ChangeEventArgs _) { }
+
+    async Task Go(int p)
+    {
+        if (p < 1 || p > TotalPages) return;
+        Page = p;
+        await PageChanged.InvokeAsync(p);
+    }
+
+    IEnumerable<int> Pages()
+    {
+        if (TotalPages <= 5) { for (var i = 1; i <= TotalPages; i++) yield return i; yield break; }
+        yield return 1;
+        if (Page > 3) yield return -1;
+        for (var i = Math.Max(2, Page - 1); i <= Math.Min(TotalPages - 1, Page + 1); i++) yield return i;
+        if (Page < TotalPages - 2) yield return -1;
+        yield return TotalPages;
+    }
+}

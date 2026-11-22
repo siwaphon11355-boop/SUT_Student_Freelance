@@ -1,0 +1,171 @@
+@page "/users/sanctions"
+@inject ShellState Shell
+@inject NavigationManager Nav
+
+<PageTitle>การลงโทษบัญชีและการควบคุมวินัยนักศึกษา · SUT Freelance</PageTitle>
+
+<PageHeader Title="การลงโทษบัญชีและการควบคุมวินัยนักศึกษา" Subtitle="จัดการมาตรการระงับบัญชีและตรวจสอบประวัติคำสั่งลงโทษ">
+    <a class="btn outline" href="/audit"><Icon Name="clock" Size="16" /> ประวัติการลงโทษ</a>
+</PageHeader>
+
+<div class="card card-pad mb">
+    <div class="field-row" style="margin-bottom:14px">
+        <div>
+            <h2 class="card-title">ค้นหาบัญชีนักศึกษา / ร้านค้าฟรีแลนซ์เพื่อควบคุมสถานะ</h2>
+            <p class="card-sub">ค้นหาด้วยรหัสนักศึกษาหรือชื่อ-นามสกุล เพื่อปรับสถานะบัญชี (ปกติ / ระงับชั่วคราว / ระงับถาวร)</p>
+        </div>
+        <button class="btn danger" @onclick="() => OpenSanctionModal(selectedUser)">
+            <Icon Name="ban" Size="16" /> เปิดหน้าต่างยืนยันการระงับบัญชี
+        </button>
+    </div>
+
+    <div class="filter-bar" style="padding:0 0 16px">
+        <label class="search-box">
+            <Icon Name="search" Size="16" />
+            <input placeholder="กรอกรหัสนักศึกษา (เช่น B6811234) หรือชื่อ-นามสกุล..." @bind="searchQuery" @bind:event="oninput" />
+        </label>
+        <select class="select" @bind="selectedId">
+            <option value="B6811234">B6811234 — นายพงศกร เลิศวิจิตร (ฟรีแลนซ์ · 8 งานที่เปิดรับจ้าง)</option>
+            <option value="B6639102">B6639102 — นายณัฐวุฒิ ประเสริฐ (ระงับชั่วคราว)</option>
+            <option value="B6790012">B6790012 — นายศรัณย์ สมชัย (ถูกแบนถาวร)</option>
+            <option value="B6802189">B6802189 — นายธนภัทร สุขสันต์ (ปกติ)</option>
+        </select>
+    </div>
+
+    <div class="setting-box" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+        <div class="cell-user">
+            <span class="avatar" style="background:var(--orange)">พล</span>
+            <div>
+                <strong style="font-size:16px">@selectedUser.Name <code class="id-chip">รหัสนักศึกษา: @selectedUser.Id</code></strong>
+                <div class="muted-sm">บทบาท: @selectedUser.Role &nbsp;•&nbsp; สังกัด: @selectedUser.Faculty &nbsp;•&nbsp; เหตุการณ์ที่เชื่อมโยง: <strong style="color:var(--red)">@selectedUser.Incident</strong></div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="muted-sm" style="margin-right:6px">สถานะสิทธิ์ปัจจุบัน:</span>
+            <button class="btn sm @(selectedUser.Status == "ปกติ" ? "success" : "outline")" @onclick='() => QuickStatus("ปกติ")'>ปกติ (Active)</button>
+            <button class="btn sm @(selectedUser.Status.Contains("ระงับ") ? "warn" : "outline")" @onclick="() => OpenSanctionModal(selectedUser)">ระงับชั่วคราว</button>
+            <button class="btn sm danger" @onclick="() => OpenSanctionModal(selectedUser)"><Icon Name="ban" Size="14" /> ระงับถาวร (Ban)</button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-head" style="padding-bottom:14px">
+        <div>
+            <h2 class="card-title">คิวตรวจสอบการกระทำผิดและบัญชีที่ถูกอายัดชั่วคราว</h2>
+            <p class="card-sub">มี 3 กรณีอยู่ระหว่างการสอบสวน และ 12 รายการรีวิวที่ถูกแจ้งเตือนรอการพิจารณาโทษ</p>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>รหัสเหตุการณ์</th>
+                    <th>นักศึกษาเป้าหมาย</th>
+                    <th>บทบาทและงานที่เปิด</th>
+                    <th>หมวดหมู่ความผิด</th>
+                    <th>ระดับความรุนแรง</th>
+                    <th>สถานะปัจจุบัน</th>
+                    <th class="right">การจัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in cases)
+                {
+                    <tr>
+                        <td class="id-cell" style="color:var(--orange)">@item.IncidentId</td>
+                        <td>
+                            <strong>@item.Name</strong>
+                            <div class="muted-sm">@item.Id • @item.Faculty</div>
+                        </td>
+                        <td>@item.Role</td>
+                        <td>@item.Category</td>
+                        <td><span class="pill @item.SeverityKind">@item.Severity</span></td>
+                        <td><span class="pill @StatusKind(item.Status) dotted">@item.Status</span></td>
+                        <td class="right">
+                            <button class="btn danger sm" @onclick="() => OpenSanctionModal(item)">
+                                <Icon Name="gavel" Size="14" /> พิจารณาลงโทษ
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<SanctionModal @bind-Show="showModal"
+               TargetName="@activeTarget.Name"
+               TargetId="@activeTarget.Id"
+               TargetRole="@activeTarget.Role"
+               LinkedIncident="@activeTarget.Incident"
+               TargetEmail="@($"{activeTarget.Id.ToLower()}@sut.ac.th")"
+               OnConfirmed="ApplySanction" />
+
+@if (toast != null)
+{
+    <div class="toast"><Icon Name="check-circle" /> @toast</div>
+}
+
+@code {
+    public class SanctionTarget
+    {
+        public string IncidentId { get; set; } = "";
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Faculty { get; set; } = "";
+        public string Role { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string Incident { get; set; } = "";
+        public string Severity { get; set; } = "";
+        public string SeverityKind { get; set; } = "red";
+        public string Status { get; set; } = "อยู่ระหว่างการสอบสวน";
+    }
+
+    List<SanctionTarget> cases = new()
+    {
+        new() { IncidentId="#REV-8795", Id="B6811234", Name="นายพงศกร เลิศวิจิตร", Faculty="สำนักวิชาวิศวกรรมศาสตร์", Role="ผู้ให้บริการฟรีแลนซ์นักศึกษา (8 งานที่เปิดรับจ้าง)", Category="การทุจริตทางวิชาการและการส่งมอบงานเท็จ (Academic Dishonesty)", Incident="ตรวจพบในคิวความรู้สึก AI (เหตุการณ์ #REV-8795: ผลการคำนวณงานวิศวกรรมเป็นเท็จ / ส่อทุจริตทางวิชาการ)", Severity="ผิดวินัยร้ายแรง", SeverityKind="red", Status="อยู่ระหว่างการสอบสวน" },
+        new() { IncidentId="#REV-8841", Id="B6639102", Name="นายณัฐวุฒิ ประเสริฐ", Faculty="สำนักวิชาวิศวกรรมศาสตร์ (เครื่องกล)", Role="ผู้ให้บริการฟรีแลนซ์นักศึกษา (2 งานที่เปิดรับจ้าง)", Category="การเบี้ยวงานและไม่ส่งมอบตามกำหนด", Incident="หยุดตอบแชตก่อนกำหนดส่งงาน 2 ชั่วโมง (#REV-8841)", Severity="ความเร่งด่วนสูง", SeverityKind="amber", Status="ระงับชั่วคราว (7 วัน)" },
+        new() { IncidentId="#DISP-2024-085", Id="B6705411", Name="นายนพดล วงศ์สุวรรณ", Faculty="สำนักวิชาวิทยาศาสตร์", Role="ผู้ให้บริการฟรีแลนซ์นักศึกษา (4 งานที่เปิดรับจ้าง)", Category="การเรียกเก็บเงินนอกระบบ (Fee Circumvention)", Incident="ขอให้โอนมัดจำผ่านพร้อมเพย์ส่วนตัวโดยตรง (#DISP-2024-085)", Severity="ฝ่าฝืนระเบียบแพลตฟอร์ม", SeverityKind="blue", Status="รอตรวจสอบประวัติ" }
+    };
+
+    string searchQuery = "";
+    string selectedId = "B6811234";
+    bool showModal = false;
+    string? toast;
+    SanctionTarget activeTarget = new();
+
+    SanctionTarget selectedUser => cases.FirstOrDefault(c => c.Id == selectedId) ?? cases[0];
+
+    protected override void OnInitialized()
+    {
+        activeTarget = cases[0];
+        Shell.Set(new[] { "การจัดการผู้ใช้", "มาตรการลงโทษและการระงับบัญชี" }, "ค้นหารหัสนักศึกษา หรือรหัสคดี...");
+    }
+
+    void OpenSanctionModal(SanctionTarget t)
+    {
+        activeTarget = t;
+        showModal = true;
+    }
+
+    void QuickStatus(string st)
+    {
+        selectedUser.Status = st;
+        Toast($"ปรับสถานะของ {selectedUser.Name} ({selectedUser.Id}) เป็น '{st}' เรียบร้อยแล้ว");
+    }
+
+    void ApplySanction(string duration)
+    {
+        activeTarget.Status = duration == "perm" ? "ระงับถาวร (พ้นสภาพ)" : $"ระงับชั่วคราว ({duration} วัน)";
+        Toast($"ยืนยันการลงโทษ {activeTarget.Name} ({activeTarget.Id}): {activeTarget.Status} และบันทึกลง Audit Trail แล้ว");
+    }
+
+    static string StatusKind(string s) => s.Contains("ถาวร") ? "red" : s.Contains("ระงับ") ? "amber" : "blue";
+
+    void Toast(string m)
+    {
+        toast = m;
+        _ = Task.Delay(3000).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); });
+    }
+}

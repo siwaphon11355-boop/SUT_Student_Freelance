@@ -1,0 +1,123 @@
+@page "/analytics"
+@inject ShellState Shell
+
+<PageTitle>วิเคราะห์ความรู้สึก AI และตรวจสอบคุณภาพงาน · SUT Freelance</PageTitle>
+
+<PageHeader Title="วิเคราะห์ความรู้สึกและคุณภาพงาน">
+    <button class="btn outline"><Icon Name="calendar" Size="16" /> 30 วันล่าสุด <Icon Name="chevron-down" Size="14" /></button>
+    <button class="btn outline"><Icon Name="download" Size="16" /> ส่งออกรายงาน</button>
+</PageHeader>
+
+<div class="grid g4 mb">
+    <div class="card stat"><div class="label">รีวิวที่วิเคราะห์ทั้งหมด</div><div class="value">1,240</div><span class="delta"><Icon Name="trend" Size="12" /> +180 รีวิว</span></div>
+    <div class="card stat"><div class="label">ความรู้สึกเชิงบวก</div><div class="value">82% <small>(1,017)</small></div><div class="mini-bar"><i style="width:82%;background:var(--green)"></i></div></div>
+    <div class="card stat"><div class="label">ความรู้สึกเป็นกลาง</div><div class="value">11% <small>(136)</small></div><div class="mini-bar"><i style="width:11%;background:var(--amber)"></i></div></div>
+    <div class="card stat flag" style="border-color:#fecaca"><div class="label">ความรู้สึกเชิงลบ</div><div class="value" style="color:var(--red)">7% <small>(87)</small></div><div class="muted-sm" style="margin-top:4px;color:var(--red);font-weight:600">23 รายการรอตรวจสอบ</div></div>
+</div>
+
+<div class="grid g3 mb">
+    <div class="card card-pad">
+        <h2 class="card-title">การกระจายตัวของความรู้สึก</h2>
+        <div class="donut-wrap">
+            <svg viewBox="0 0 42 42" width="210" height="210" style="transform:rotate(-90deg)">
+                <circle cx="21" cy="21" r="15.915" fill="none" stroke="#00C758" stroke-width="5" stroke-dasharray="82 18" stroke-dashoffset="0" />
+                <circle cx="21" cy="21" r="15.915" fill="none" stroke="#EDB200" stroke-width="5" stroke-dasharray="11 89" stroke-dashoffset="-82" />
+                <circle cx="21" cy="21" r="15.915" fill="none" stroke="#FB2C36" stroke-width="5" stroke-dasharray="7 93" stroke-dashoffset="-93" />
+            </svg>
+            <div class="donut-center"><strong>82%</strong><span>พึงพอใจโดยรวม</span></div>
+        </div>
+        <div class="legend">
+            <div><span><i style="background:#00C758"></i>เชิงบวก</span><strong>1,017 (82%)</strong></div>
+            <div><span><i style="background:#EDB200"></i>เป็นกลาง</span><strong>136 (11%)</strong></div>
+            <div><span><i style="background:#FB2C36"></i>เชิงลบ</span><strong style="color:var(--red)">87 (7%)</strong></div>
+        </div>
+    </div>
+
+    <div class="card card-pad">
+        <div class="field-row"><h2 class="card-title">แนวโน้มรายสัปดาห์</h2><span class="muted-sm" style="display:flex;gap:12px"><span style="color:#00C758">— เชิงบวก</span><span style="color:#FB2C36">— เชิงลบ</span></span></div>
+        <svg class="chart" viewBox="0 0 400 250" style="margin-top:20px">
+            @foreach (var (y, label) in new[] { (30, "100%"), (90, "75%"), (150, "50%"), (210, "0%") })
+            {
+                <line x1="40" x2="385" y1="@y" y2="@y" stroke="#E3E0DD" stroke-dasharray="3 3" />
+                <SvgText X="34" Y="@(y + 4)" Anchor="end" Style="font-size:10px;font-family:var(--mono)">@label</SvgText>
+            }
+            <path d="@Line(p => p.Positive)" fill="none" stroke="#00C758" stroke-width="2.5" />
+            <path d="@Line(p => p.Negative)" fill="none" stroke="#FB2C36" stroke-width="2.5" />
+            @for (var i = 0; i < MockData.Trend.Length; i++)
+            {
+                var idx = i;
+                <SvgText X="X(idx)" Y="236" Anchor="middle" Style="font-size:11px">ส. @(idx + 1)</SvgText>
+            }
+        </svg>
+    </div>
+
+    <div class="card card-pad">
+        <h2 class="card-title" style="margin-bottom:14px">สาเหตุหลักของข้อร้องเรียนเชิงลบ</h2>
+        <div class="cause"><span><Icon Name="clock" Size="14" /> ส่งงานล่าช้ากว่ากำหนด</span><b>38</b></div>
+        <div class="cause"><span><Icon Name="message" Size="14" /> ไม่ตอบข้อความแชต</span><b>24</b></div>
+        <div class="cause mid"><span><Icon Name="file" Size="14" /> ฟอร์แมตไฟล์และคุณภาพงานไม่ได้มาตรฐาน</span><b>16</b></div>
+        <div class="cause mid"><span><Icon Name="wallet" Size="14" /> ข้อพิพาทเรื่องราคาและค่าใช้จ่ายเพิ่มเติม</span><b>11</b></div>
+        <div class="cause"><span><Icon Name="calendar" Size="14" /> ยกเลิกงานในนาทีสุดท้าย</span><b>9</b></div>
+        <div class="cause"><span><Icon Name="shield" Size="14" /> ข้อกังวลเรื่องการคัดลอกผลงาน/ทุจริต</span><b>4</b></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="queue-title">
+        <h2 class="card-title" style="margin:0">คิวตรวจสอบข้อร้องเรียน <span class="pill red" style="font-size:12px;vertical-align:middle">23 รายการ</span></h2>
+        <div class="page-head-actions">
+            <button class="btn outline" @onclick="() => highFirst = !highFirst"><Icon Name="filter" Size="14" /> ความรุนแรง: @(highFirst ? "สูงสุดไปต่ำสุด" : "ต่ำสุดไปสูงสุด")</button>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>รหัสรีวิว</th><th>คะแนน</th><th>ผู้ว่าจ้าง</th><th>ฟรีแลนซ์</th><th>ข้อความที่ถูกตรวจจับ</th><th>ความเสี่ยง</th><th>วันที่</th><th class="right">การจัดการ</th></tr></thead>
+            <tbody>
+                @foreach (var r in flaggedList)
+                {
+                    <tr>
+                        <td style="white-space:nowrap"><strong style="color:var(--orange)">@r.Id</strong></td>
+                        <td style="white-space:nowrap"><span class="stars red"><Icon Name="star" Size="14" /> @r.Rating</span></td>
+                        <td style="white-space:nowrap"><strong>@r.Customer</strong></td>
+                        <td style="white-space:nowrap"><strong>@r.Provider</strong></td>
+                        <td style="max-width:360px"><span class="quote">@r.Quote</span></td>
+                        <td style="white-space:nowrap">
+                            @if (r.Severity == "วิกฤต")
+                            {
+                                <span class="pill red">ระดับวิกฤต</span>
+                            }
+                            else
+                            {
+                                <span class="pill amber">เฝ้าระวัง</span>
+                            }
+                        </td>
+                        <td class="muted" style="white-space:nowrap">@r.Date</td>
+                        <td class="right"><a class="btn sm @(r.Severity == "วิกฤต" ? "danger" : "outline")" href="/moderation">ตรวจสอบ</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="pager"><span>แสดง 4 จาก 23 รีวิวที่มีการแจ้งเตือน</span>
+        <div class="pager-controls"><button class="page-btn" disabled>ก่อนหน้า</button><button class="page-btn @(pg == 1 ? "active" : "")" @onclick="() => pg = 1">1</button><button class="page-btn @(pg == 2 ? "active" : "")" @onclick="() => pg = 2">2</button><button class="page-btn @(pg == 3 ? "active" : "")" @onclick="() => pg = 3">3</button><button class="page-btn">ถัดไป</button></div></div>
+</div>
+
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    bool highFirst = true;
+    int pg = 1;
+    string? toast;
+
+    List<FlaggedReview> flaggedList => (highFirst ? MockData.FlaggedReviews() : MockData.FlaggedReviews().AsEnumerable().Reverse().ToList()).ToList();
+
+    double X(int i) => 55 + i * 62;
+    string Line(Func<SentimentTrendPoint, double> sel)
+    {
+        return "M" + string.Join(" L", MockData.Trend.Select((p, i) => $"{X(i):F1},{210 - sel(p) / 100d * 180:F1}"));
+    }
+
+    void Toast(string m) { toast = m; _ = Task.Delay(2500).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "การวิเคราะห์ข้อมูล", "ข้อมูลเชิงลึก AI วิเคราะห์ความรู้สึก" }, "ค้นหารหัสรีวิว, รหัสนักศึกษา หรือคำสำคัญ...");
+}

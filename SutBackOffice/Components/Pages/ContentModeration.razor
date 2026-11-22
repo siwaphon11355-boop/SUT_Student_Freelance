@@ -1,0 +1,96 @@
+@page "/moderation/content"
+@inject ShellState Shell
+
+<PageTitle>ตรวจสอบรูปภาพผลงานและพอร์ตโฟลิโอ · SUT Freelance</PageTitle>
+
+<ModTabs Active="content" />
+
+<PageHeader Title="ตรวจสอบรูปภาพผลงานและพอร์ตโฟลิโอ" Subtitle="ตรวจสอบความเหมาะสมของภาพปกบริการและผลงานของนักศึกษา">
+    <button class="btn primary" @onclick='() => Batch("อนุมัติแล้ว")'><Icon Name="check" Size="16" /> อนุมัติรายการที่ผ่านเกณฑ์</button>
+</PageHeader>
+
+<div class="grid g3-1">
+    <div>
+        <div class="card card-pad mb">
+            <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+                <button class="tab @(tab == 0 ? "on" : "")" style="@(tab == 0 ? "background:#413830;color:#fff;border-radius:var(--radius-sm);padding:8px 14px;border:0" : "")" @onclick="() => tab = 0">อัปโหลดใหม่ใน 24 ชม. <span class="pill red">@Pending.Count</span></button>
+                <button class="tab" @onclick="() => tab = 1">รูปที่ AI แจ้งเตือนสุ่มเสี่ยง <span class="pill red">@(5 + flagged)</span></button>
+                <button class="tab" @onclick="() => tab = 2">รูปที่ผ่านการอนุมัติแล้ว <span class="pill green">@(1420 + passed)</span></button>
+                <button class="tab" @onclick="() => tab = 3">รูปที่ถูกระงับ/ลบ (38)</button>
+                <div class="view-icons"><button class="on"><Icon Name="dashboard" Size="14" /></button><button><Icon Name="list" Size="14" /></button></div>
+            </div>
+            <div class="filter-bar" style="padding:16px 0 0;gap:12px">
+                <label class="muted-sm" style="font-weight:700">ประเภทงาน: <select class="select" style="font-weight:400"><option>ประเภทงาน (ทั้งหมด)</option></select></label>
+                <label class="muted-sm" style="font-weight:700">การตรวจจับ AI: <select class="select" style="font-weight:400"><option>การตรวจจับ AI (ทั้งหมด)</option></select></label>
+                <span class="spacer"></span>
+                <span class="muted-sm">เลือกแล้ว: <strong style="color:var(--on-surface)">@selectedCount รายการ</strong></span>
+                <button class="btn success sm" disabled="@(selectedCount == 0)" @onclick='() => Batch("อนุมัติแล้ว")'><Icon Name="check" Size="14" /> อนุมัติรายการที่เลือก</button>
+                <button class="btn danger sm" disabled="@(selectedCount == 0)" @onclick='() => Batch("ระงับแล้ว")'><Icon Name="ban" Size="14" /> ระงับและลบที่เลือก</button>
+            </div>
+        </div>
+
+        <div class="media-grid">
+            @foreach (var m in Pending)
+            {
+                <div class="media-card @(m.TagKind == "risk" ? "risk" : "") @(m.Selected ? "selected" : "")">
+                    <div class="media-thumb" style="background:@m.Gradient">
+                        <input class="media-check" type="checkbox" checked="@m.Selected" @onchange="e => m.Selected = (bool)e.Value!" />
+                        <span class="banner @m.TagKind" style="@(m.TagKind == "safe" ? "" : "left:36px")"><Icon Name="@(m.TagKind == "safe" ? "check-circle" : "alert")" Size="12" /> @m.Tag</span>
+                        <Icon Name="image" Size="42" />
+                    </div>
+                    <div class="media-info">
+                        <div class="row"><span class="kind-@m.TagKind">@m.Id · @m.Kind</span><span class="muted-sm" style="font-weight:400">@m.Ago</span></div>
+                        <h3>@m.Title</h3>
+                        <p>เจ้าของ: @m.Provider</p>
+                    </div>
+                    <div class="media-actions">
+                        <button class="btn sm ok-outline" @onclick='() => Decide(m, "อนุมัติแล้ว")'><Icon Name="check-circle" Size="14" /> อนุมัติ ✓</button>
+                        <button class="btn sm @(m.TagKind == "safe" ? "ghost" : "danger")" @onclick='() => Decide(m, "ระงับแล้ว")'><Icon Name="flag" Size="14" /> ธงแจ้งเตือน ⚑</button>
+                        <span class="spacer"></span>
+                        <button class="icon-btn" aria-label="เพิ่มเติม"><Icon Name="more" Size="16" /></button>
+                    </div>
+                </div>
+            }
+            @if (!Pending.Any()) { <div class="empty" style="grid-column:1/-1">ตรวจสอบรูปภาพในหน้านี้ครบทุกรายการแล้ว</div> }
+        </div>
+        <Pager Info="@($"แสดง 1 - {Pending.Count} จาก 14 รูปภาพที่รอการตรวจสอบ")" @bind-Page="page" TotalPages="3" ShowRows="false" />
+    </div>
+
+    <div class="right-col">
+        <div class="side-card card">
+            <h3><Icon Name="shield" /> แนวทางกำกับดูแลเนื้อหา มทส.</h3>
+            <div class="policy-list" style="margin-top:14px">
+                <div><strong style="color:var(--red-700)"><Icon Name="x" Size="14" /> ข้อสอบและแบบทดสอบ:</strong> ห้ามเผยแพร่หรือรับจ้างทำข้อสอบ/การบ้าน</div>
+                <div><strong style="color:var(--orange)"><Icon Name="shield-check" Size="14" /> ตราสัญลักษณ์ มทส.:</strong> การใช้ตราสถาบันเชิงพาณิชย์ต้องได้รับอนุญาต</div>
+                <div><strong style="color:var(--red-700)"><Icon Name="ban" Size="14" /> ภาพไม่เหมาะสม:</strong> ระงับทันทีหากพบภาพผิดศีลธรรมหรือละเมิดสิทธิ์</div>
+            </div>
+            <a class="link-btn" href="#" @onclick:preventDefault style="margin-top:12px;display:inline-block;border-top:1px solid var(--outline);padding-top:12px">ดูระเบียบวินัยนักศึกษาฉบับเต็ม <Icon Name="external" Size="12" /></a>
+        </div>
+        <div class="side-card card">
+            <h3 style="font-size:15px"><Icon Name="bell" /> การแจ้งเตือนนักศึกษา</h3>
+            <p class="muted-sm" style="margin-top:10px">เมื่อระงับรูปภาพ ระบบจะส่งแจ้งเตือนไปยัง SUT Mail ของนักศึกษาโดยอัตโนมัติ พร้อมสิทธิ์ยื่นอุทธรณ์ภายใน 48 ชั่วโมง</p>
+        </div>
+    </div>
+</div>
+
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    List<MediaItem> all = MockData.Media();
+    int tab, page = 1, passed, flagged;
+    string? toast;
+
+    List<MediaItem> Pending => tab == 0 || tab == 3 ? all.Where(m => m.Decision == "").ToList() : all.Where(m => m.Decision == (tab == 1 ? "ระงับแล้ว" : "อนุมัติแล้ว")).ToList();
+    int selectedCount => all.Count(m => m.Selected && m.Decision == "");
+
+    void Decide(MediaItem m, string d)
+    {
+        m.Decision = d; m.Selected = false;
+        if (d == "อนุมัติแล้ว") passed++; else flagged++;
+        Toast($"รูปภาพ {m.Id}: {d} และส่งแจ้งเตือนไปยัง SUT Mail ของนักศึกษาแล้ว");
+    }
+    void Batch(string d) { foreach (var m in all.Where(x => x.Selected && x.Decision == "").ToList()) Decide(m, d); }
+    void Toast(string m) { toast = m; _ = Task.Delay(2500).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "ตรวจสอบเนื้อหาและรีวิว", "ตรวจสอบรูปภาพผลงานและพอร์ตโฟลิโอ" }, "ค้นหารหัสรูปภาพ, ชื่องาน, หรือรหัสนักศึกษา...");
+}

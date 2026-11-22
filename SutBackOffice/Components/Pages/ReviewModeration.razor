@@ -1,0 +1,87 @@
+@page "/moderation"
+@inject ShellState Shell
+
+<PageTitle>ตรวจสอบรีวิวและความปลอดภัย · SUT Freelance</PageTitle>
+
+<ModTabs Active="reviews" />
+
+<PageHeader Title="ตรวจสอบรีวิวและความปลอดภัย">
+    <button class="btn outline"><Icon Name="download" Size="16" /> ส่งออก CSV</button>
+    <button class="btn primary" @onclick='() => Nav.NavigateTo("/settings")'><Icon Name="settings" Size="16" /> ตั้งค่าตัวกรอง</button>
+</PageHeader>
+
+<div class="grid g4 mb">
+    <div class="card stat"><div class="label">รีวิวทั้งหมด</div><div class="value">1,240</div><span class="delta"><Icon Name="trend" Size="12" /> +8.4%</span></div>
+    <div class="card stat flag"><div class="label">รีวิวที่ถูกรายงาน</div><div class="value">23</div><div class="muted-sm" style="margin-top:4px;color:var(--red);font-weight:600">12 รายการเร่งด่วน</div></div>
+    <div class="card stat"><div class="label">รีวิวที่ถูกซ่อนไว้</div><div class="value">14</div><div class="muted-sm" style="margin-top:4px">ถูกระงับการแสดงผล</div></div>
+    <div class="card stat"><div class="label">ความพึงพอใจเฉลี่ย</div><div class="value">4.82 <small>/ 5.0</small></div><div class="muted-sm" style="margin-top:4px;color:var(--green-700);font-weight:600">97.2% พึงพอใจ</div></div>
+</div>
+
+<div class="card mb">
+    <div class="filter-bar">
+        <select class="select" @bind="stars"><option value="0">คะแนนดาวทั้งหมด</option><option value="1">1 ดาว</option><option value="2">2 ดาว</option></select>
+        <select class="select"><option>การประเมินจาก AI (เชิงลบ/มีปัญหา)</option><option>ทั้งหมด</option></select>
+        <select class="select"><option>สถานะ: รอตรวจสอบ (@pending)</option></select>
+        @if (stars != "0")
+        {
+            <button class="btn ghost sm" @onclick='() => stars = "0"'>ล้างตัวกรอง</button>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="filter-bar" style="background:var(--bg);border-bottom:1px solid var(--outline);padding:12px 20px">
+        <strong>คิวตรวจสอบรีวิว</strong> <span class="pill red" style="font-size:12px">@pending รายการรอตรวจ</span>
+    </div>
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>รหัสรีวิว</th><th>บริการและฟรีแลนซ์</th><th>ผู้รีวิว</th><th>คะแนน</th><th>ข้อความรีวิว</th><th>ประเภท</th><th class="right">การจัดการ</th></tr></thead>
+            <tbody>
+                @foreach (var r in items)
+                {
+                    <tr style="@(r.Resolution != "รอตรวจสอบ" ? "opacity:.55" : "")">
+                        <td style="white-space:nowrap"><strong style="color:var(--orange)">@r.Id</strong><div class="muted-sm">@r.Date</div></td>
+                        <td><strong>@r.Gig</strong><div class="muted-sm">@ShortName(r.Provider)</div></td>
+                        <td style="white-space:nowrap"><strong>@r.Reviewer</strong></td>
+                        <td style="white-space:nowrap"><span class="star-row">@for (var s = 1; s <= 5; s++) { <span class="@(s <= r.Stars ? "" : "off")"><Icon Name="star" Size="13" /></span> }</span></td>
+                        <td style="max-width:360px">
+                            <div>@r.Pre<span class="quote-hl">@r.Highlight</span>@r.Post</div>
+                        </td>
+                        <td style="white-space:nowrap"><span class="pill @(r.Tag1 == "วินัยวิชาการ" || r.Tag1 == "ละเมิดลิขสิทธิ์" ? "blue" : "red") dotted">@r.Tag1</span></td>
+                        <td>
+                            @if (r.Resolution == "รอตรวจสอบ")
+                            {
+                                <div class="row-actions">
+                                    <button class="btn sm primary" @onclick='() => Resolve(r, "ซ่อนรีวิวแล้ว")'>ซ่อน</button>
+                                    <button class="btn sm outline" @onclick='() => Resolve(r, "ยกเลิกแจ้งเตือน")'>ยกเลิก</button>
+                                    <button class="btn sm danger" @onclick='() => Resolve(r, "ลบถาวรแล้ว")'>ลบ</button>
+                                </div>
+                            }
+                            else { <span class="pill gray">@r.Resolution</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <Pager Info="แสดง 1-4 จาก 23 รายการรีวิวที่ถูกแจ้งเตือน" @bind-Page="page" TotalPages="3" />
+</div>
+
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    [Inject] NavigationManager Nav { get; set; } = default!;
+
+    List<ModReview> all = MockData.ModerationReviews();
+    string stars = "0", toast;
+    int page = 1;
+    int pending => 23 - all.Count(r => r.Resolution != "รอตรวจสอบ");
+    List<ModReview> items => all.Where(r => stars == "0" || r.Stars.ToString() == stars).ToList();
+
+    static string ShortName(string s) => s.Contains('•') ? s[..s.IndexOf('•')].Trim() : s;
+
+    void Resolve(ModReview r, string res) { r.Resolution = res; Toast($"ดำเนินการ {r.Id}: {res} และบันทึกลง Audit Trail แล้ว"); }
+    void Toast(string m) { toast = m; _ = Task.Delay(2500).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "ตรวจสอบเนื้อหาและรีวิว", "ตรวจสอบรีวิวและความปลอดภัย" }, "ค้นหารหัสรีวิว, ข้อความ, ผู้ว่าจ้าง หรือฟรีแลนซ์...");
+}

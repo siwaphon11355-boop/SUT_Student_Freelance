@@ -1,0 +1,29 @@
+## Build results
+[Bb]in/
+[Oo]bj/
+**/bin/
+**/obj/
+
+## Secret / machine keys
+**/.keys/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Local dev tools / binaries
+tools/
+*.exe
+
+## IDE & Tooling
+.vs/
+.vscode/
+.idea/
+.gemini/
+.impeccable/
+
+## OS files
+Thumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+.DS_Store

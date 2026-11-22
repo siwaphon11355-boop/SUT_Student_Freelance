@@ -1,0 +1,15 @@
+<div class="page-head">
+    <div class="page-head-text">
+        <h1>@Title @if (!string.IsNullOrEmpty(Badge)) { <span class="pill @BadgeKind head-badge">@Badge</span> }</h1>
+        @if (!string.IsNullOrEmpty(Subtitle)) { <p>@Subtitle</p> }
+    </div>
+    <div class="page-head-actions">@ChildContent</div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? Badge { get; set; }
+    [Parameter] public string BadgeKind { get; set; } = "red";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

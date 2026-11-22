@@ -1,0 +1,260 @@
+@page "/dashboard"
+@inject ShellState Shell
+@inject NavigationManager Nav
+
+<PageTitle>แดชบอร์ดภาพรวมการดำเนินงาน · SUT Freelance</PageTitle>
+
+<PageHeader Title="แดชบอร์ดภาพรวมการดำเนินงาน">
+    <button class="btn outline"><Icon Name="calendar" Size="18" /> 7 วันล่าสุด <Icon Name="chevron-down" Size="16" /></button>
+    <button class="btn primary"><Icon Name="download" Size="18" /> ส่งออกรายงาน</button>
+</PageHeader>
+
+<section class="grid g4 mb">
+    @foreach (var s in stats)
+    {
+        <article class="card stat-v2">
+            <div class="stat-chip"><Icon Name="@s.Icon" Size="20" /></div>
+            <div class="stat-lbl">@s.Label</div>
+            <div class="stat-foot-v2">
+                <div>
+                    <div class="stat-num">@s.Value</div>
+                    <span class="stat-delta" style="margin-top:6px"><Icon Name="trend" Size="14" /> @s.Delta</span>
+                </div>
+                @((MarkupString)SparkSvg(s.Id, s.Points))
+            </div>
+        </article>
+    }
+
+    <article class="card stat-v2 urg">
+        <div class="stat-chip"><Icon Name="id-card" Size="20" /></div>
+        <div class="stat-lbl">คำขอรอตรวจบัตร</div>
+        <div class="stat-num">18</div>
+        <div class="stat-foot-v2" style="align-items:center">
+            <span class="urg-tag"><span class="urg-pulse"></span>คิวเร่งด่วน</span>
+            <a class="btn urg-go" href="/providers/verify">ตรวจเลย <Icon Name="arrow-right" Size="16" /></a>
+        </div>
+    </article>
+</section>
+
+<section class="dash-mid mb">
+    <div class="card">
+        <div class="field-row" style="align-items:center">
+            <h2 class="card-title" style="margin:0">สถิติคำขอจ้างงาน</h2>
+            <div class="seg">
+                <button class="@(daily ? "on" : "")" @onclick="() => SetMode(true)">รายวัน</button>
+                <button class="@(!daily ? "on" : "")" @onclick="() => SetMode(false)">รายสัปดาห์</button>
+            </div>
+        </div>
+
+        <div class="plot-wrap">
+            <svg viewBox="0 0 1000 330" class="plot-svg">
+                <defs>
+                    <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#FF6B00" stop-opacity=".42" />
+                        <stop offset=".6" stop-color="#FF9A3D" stop-opacity=".12" />
+                        <stop offset="1" stop-color="#FF9A3D" stop-opacity="0" />
+                    </linearGradient>
+                    <linearGradient id="gl" x1="0" x2="1">
+                        <stop offset="0" stop-color="#FF9A3D" />
+                        <stop offset="1" stop-color="#FF6B00" />
+                    </linearGradient>
+                </defs>
+                @for (var g = 0; g < 4; g++)
+                {
+                    var gy = 40 + g * (240.0 / 3.0);
+                    <line x1="40" x2="960" y1="@F(gy)" y2="@F(gy)" stroke="currentColor" stroke-opacity=".12" stroke-dasharray="5 6" />
+                }
+                <path d="@AreaPath" fill="url(#ga)" />
+                <path d="@CurvePath" fill="none" stroke="url(#gl)" stroke-width="4" stroke-linecap="round" />
+                @{
+                    var hp = Coords[hover];
+                }
+                <line x1="@F(hp.x)" x2="@F(hp.x)" y1="30" y2="280" stroke="#FF6B00" stroke-dasharray="4 5" stroke-width="1.8" />
+                <circle cx="@F(hp.x)" cy="@F(hp.y)" r="11" fill="#FF6B00" fill-opacity=".2" />
+                @for (var i = 0; i < Coords.Length; i++)
+                {
+                    var idx = i;
+                    var p = Coords[idx];
+                    <circle cx="@F(p.x)" cy="@F(p.y)" r="6" fill="#fff" stroke="#FF6B00" stroke-width="3" />
+                    <rect x="@F(p.x - 60)" y="20" width="120" height="270" fill="transparent" @onmouseover="() => hover = idx" />
+                    <SvgText X="p.x" Y="318" Anchor="middle" Style="@(idx == hover ? "fill:#FF6B00;font-weight:700;font-size:19px" : "fill:#85786d;font-size:19px")">@Labels[idx]</SvgText>
+                }
+            </svg>
+            <div class="plot-tip" style="left:@TipLeftPct%">
+                @Labels[hover]
+                <b><i></i>@Values[hover].ToString("N0") คำขอจ้างงาน (@Moneys[hover].ToString("N0") บาท)</b>
+            </div>
+        </div>
+
+        <div class="plot-foot">
+            <span>ข้อมูลธุรกรรมคำขอจ้างงาน 7 วันล่าสุด</span>
+            <span>ยอดรวม: <b>@(daily ? "114,800" : "298,300") บาท</b></span>
+        </div>
+    </div>
+
+    <div class="card" style="display:flex;flex-direction:column">
+        <h2 class="card-title" style="margin:0 0 12px">หมวดหมู่งานยอดนิยม</h2>
+        @foreach (var c in topCats)
+        {
+            <div class="cat-item">
+                <div class="cat-top">
+                    <Icon Name="@c.Icon" Size="18" />
+                    <span>@c.Name</span>
+                    <em>@c.Pct% <small>(@c.Gigs งาน)</small></em>
+                </div>
+                <div class="cat-bar"><i style="width:@F(c.Pct / 42.0 * 100.0)%"></i></div>
+            </div>
+        }
+        <div class="sp"></div>
+        <div class="cat-all">
+            <span>รวม 856 บริการ</span>
+            <a href="/services">ดูทั้งหมด <Icon Name="arrow-right" Size="16" /></a>
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <div class="queue-head-v2">
+        <div class="stat-chip" style="background:var(--o);color:#fff"><Icon Name="alert" Size="20" /></div>
+        <h2 class="card-title" style="margin:0">คิวรอตรวจบัตรนักศึกษา</h2>
+        <span class="urg-tag" style="background:var(--soft);color:#9a3d00">@filtered.Count รายการ</span>
+        <div class="page-head-actions" style="margin-left:auto">
+            <label class="search-box" style="width:220px"><Icon Name="filter" Size="16" /><input placeholder="กรองรายการคิว..." @bind="filter" @bind:event="oninput" /></label>
+            <button class="btn outline" @onclick="Reload"><Icon Name="refresh" Size="16" /> รีโหลด</button>
+        </div>
+    </div>
+    <div class="table-wrap" style="margin-top:14px">
+        <table class="table">
+            <thead><tr><th>ผู้ขอเปิดร้านค้า</th><th>สำนักวิชา / สาขา</th><th>ประเภทบริการ</th><th>สถานะและเวลาส่ง</th><th class="right">การจัดการ</th></tr></thead>
+            <tbody>
+                @foreach (var v in filtered)
+                {
+                    <tr>
+                        <td>
+                            <div class="cell-user">
+                                <span class="avatar sm">@Initials(v.Name)</span>
+                                <div>
+                                    <strong>@v.Name</strong>
+                                    <small class="mono">@v.StudentId</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="muted">@v.Faculty</td>
+                        <td><span class="tag">@v.Service</span></td>
+                        <td>
+                            <span class="pill @StatusKind(v.Status) dotted">@v.Status</span>
+                            <div class="muted-sm" style="margin-top:2px">@v.Submitted</div>
+                        </td>
+                        <td class="right"><a class="btn primary sm" href="/providers/verify/@v.StudentId">ตรวจบัตร <Icon Name="chevron-right" Size="12" /></a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@code {
+    bool daily = true;
+    int hover = 1;
+    string filter = "";
+    List<VerificationItem> queue = MockData.VerificationQueue();
+
+    record StatCard(string Id, string Label, string Value, string Delta, string Icon, double[] Points);
+    StatCard[] stats =
+    {
+        new("s0", "ผู้ใช้งานทั้งหมด", "3,420", "+12%", "users", new double[] { 30, 34, 33, 40, 42, 41, 48, 52 }),
+        new("s1", "ฟรีแลนซ์ที่อนุมัติแล้ว", "482", "+8%", "shield-check", new double[] { 20, 22, 21, 26, 25, 29, 31, 33 }),
+        new("s2", "รายการบริการที่เปิดอยู่", "856", "+15%", "box", new double[] { 18, 20, 26, 24, 30, 34, 33, 40 }),
+    };
+
+    record TopCat(string Name, string Icon, int Pct, int Gigs);
+    TopCat[] topCats =
+    {
+        new("ติววิชาการและสอบ", "graduation", 42, 360),
+        new("พิมพ์งานและแปลเอกสาร", "languages", 26, 222),
+        new("ออกแบบกราฟิกและสื่อ", "palette", 18, 154),
+        new("ซ่อมบำรุงและไอที", "code", 14, 120),
+    };
+
+    static readonly string[] DayLabels = { "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์" };
+    static readonly double[] DayValues = { 52, 72, 81, 112, 101, 90, 98 };
+    static readonly int[] DayMoneys = { 11200, 15100, 16600, 24400, 21300, 13499, 12701 };
+
+    static readonly string[] WeekLabels = { "สัปดาห์ 1", "สัปดาห์ 2", "สัปดาห์ 3", "สัปดาห์ 4" };
+    static readonly double[] WeekValues = { 420, 505, 560, 606 };
+    static readonly int[] WeekMoneys = { 52000, 61000, 70500, 114800 };
+
+    string[] Labels => daily ? DayLabels : WeekLabels;
+    double[] Values => daily ? DayValues : WeekValues;
+    int[] Moneys => daily ? DayMoneys : WeekMoneys;
+
+    void SetMode(bool d)
+    {
+        daily = d;
+        hover = d ? 1 : 2;
+    }
+
+    (double x, double y)[] Coords
+    {
+        get
+        {
+            var v = Values;
+            var mx = v.Max() * 1.12;
+            var mn = v.Min() * 0.5;
+            var st = 920.0 / (v.Length - 1);
+            return v.Select((val, i) => (40.0 + i * st, 40.0 + 240.0 * (1.0 - (val - mn) / (mx - mn)))).ToArray();
+        }
+    }
+
+    string CurvePath
+    {
+        get
+        {
+            var pts = Coords;
+            var sb = new System.Text.StringBuilder($"M{F(pts[0].x)} {F(pts[0].y)}");
+            for (var i = 1; i < pts.Length; i++)
+            {
+                var a = pts[i - 1];
+                var b = pts[i];
+                var c = (a.x + b.x) / 2.0;
+                sb.Append($" C{F(c)} {F(a.y)} {F(c)} {F(b.y)} {F(b.x)} {F(b.y)}");
+            }
+            return sb.ToString();
+        }
+    }
+
+    string AreaPath => $"{CurvePath} L{F(Coords[^1].x)} 280 L{F(Coords[0].x)} 280 Z";
+
+    string TipLeftPct
+    {
+        get
+        {
+            var x = Coords[hover].x;
+            var pct = Math.Clamp(x / 1000.0 * 100.0 - 8.0, 2.0, 68.0);
+            return F(pct);
+        }
+    }
+
+    static string F(double v) => v.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+    static string SparkSvg(string id, double[] d)
+    {
+        const double w = 110, h = 40;
+        var mx = d.Max();
+        var mn = d.Min();
+        var pts = d.Select((v, i) => (x: i * w / (d.Length - 1), y: h - 4 - (v - mn) / (mx - mn == 0 ? 1 : mx - mn) * (h - 10))).ToArray();
+        var l = string.Join(" ", pts.Select((p, i) => $"{(i == 0 ? "M" : "L")}{F(p.x)} {F(p.y)}"));
+        var last = pts[^1];
+        return $"<svg width=\"110\" height=\"40\" viewBox=\"0 0 110 40\" style=\"overflow:visible\"><defs><linearGradient id=\"{id}\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FF6B00\" stop-opacity=\".35\"/><stop offset=\"1\" stop-color=\"#FF6B00\" stop-opacity=\"0\"/></linearGradient></defs><path d=\"{l} L110 40 L0 40Z\" fill=\"url(#{id})\"/><path d=\"{l}\" fill=\"none\" stroke=\"#FF6B00\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"{F(last.x)}\" cy=\"{F(last.y)}\" r=\"3.5\" fill=\"#fff\" stroke=\"#FF6B00\" stroke-width=\"2\"/></svg>";
+    }
+
+    List<VerificationItem> filtered => queue.Where(v => string.IsNullOrWhiteSpace(filter) ||
+        v.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) || v.StudentId.Contains(filter, StringComparison.OrdinalIgnoreCase) || v.Service.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    static string Initials(string n) => string.Concat(n.Split(' ').Take(2).Select(s => s[0]));
+    static string StatusKind(string s) => s switch { "รอการตรวจสอบ" => "amber", "แนบเอกสารแล้ว" => "blue", _ => "green" };
+
+    void Reload() { queue = MockData.VerificationQueue(); filter = ""; }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "แดชบอร์ด", "ภาพรวม" }, "ค้นหารหัสนักศึกษา หรือชื่อ-นามสกุล...");
+}

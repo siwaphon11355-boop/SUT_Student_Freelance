@@ -1,0 +1,135 @@
+@page "/moderation/reports"
+@inject ShellState Shell
+
+<PageTitle>ศูนย์จัดการข้อพิพาทและรายงานความไม่เหมาะสม · SUT Freelance</PageTitle>
+
+<ModTabs Active="reports" />
+
+<PageHeader Title="ศูนย์จัดการข้อพิพาทและรายงานความไม่เหมาะสม" Badge="14 ข้อพิพาทรอดำเนินการ">
+    <button class="btn outline"><Icon Name="filter" Size="14" /> ภาคการศึกษา: 1/2567</button>
+</PageHeader>
+
+<div class="grid g3 mb">
+    <div class="card stat"><div class="label">ข้อพิพาทรอดำเนินการ</div><div class="value">14 <small>รายการ</small></div><div class="stat-foot" style="color:var(--red);font-weight:600">8 รายการเร่งด่วน</div><div class="icon-box red"><Icon Name="calendar" /></div></div>
+    <div class="card stat"><div class="label">ยอดเงินที่ถูกพักในระบบ (Escrow Hold)</div><div class="value" style="color:var(--orange)">42,500 <small>บาท</small></div><div class="stat-foot">จาก 14 สัญญาที่มีข้อพิพาท</div><div class="icon-box amber"><Icon Name="lock" /></div></div>
+    <div class="card stat"><div class="label">อัตราการไกล่เกลี่ยสำเร็จ</div><div class="value">89.4%</div><div class="stat-foot" style="color:var(--green-700)">ยุติข้อพิพาทภายใน 24 ชม.</div><div class="icon-box green"><Icon Name="shield-check" /></div></div>
+</div>
+
+<div class="card card-pad mb" style="padding:14px 20px">
+    <div class="chips">
+        <span class="muted-sm" style="font-weight:700">กรองตามประเภท:</span>
+        @foreach (var f in filters)
+        {
+            <button class="chip @(filter == f.Key ? "active" : "")" @onclick="() => filter = f.Key">@f.Label (@f.Count)</button>
+        }
+    </div>
+    <div class="chips muted-sm" style="margin-top:10px;gap:18px"><span><i class="dot" style="background:var(--red);margin-right:4px"></i>ความเร่งด่วนสูง (3)</span><span><i class="dot" style="background:var(--orange);margin-right:4px"></i>ความเร่งด่วนปานกลาง (4)</span><span><i class="dot" style="background:var(--on-surface-muted);margin-right:4px"></i>ทั่วไป (2)</span></div>
+</div>
+
+<div class="kanban">
+    @foreach (var col in columns)
+    {
+        <div class="kcol">
+            <div class="kcol-head"><i class="dot" style="background:@col.Color"></i> @col.Title <span class="count">@Cases(col.Key).Count</span></div>
+            @foreach (var c in Cases(col.Key))
+            {
+                <div class="case-card @(selected == c ? "current" : "")">
+                    <div class="top"><span style="color:var(--orange)">@c.Id</span><span class="pill @UrgKind(c.Urgency)">@c.Urgency</span></div>
+                    <h3>@c.Title</h3>
+                    <p>@c.Summary</p>
+                    <div class="case-parties"><div><span>ผู้ร้องเรียน:</span><strong>@c.Reporter</strong></div><div><span>ผู้ถูกร้องเรียน:</span><strong>@c.Accused</strong></div></div>
+                    <div class="case-meta"><span class="tag">@c.Type</span><span><Icon Name="clock" Size="12" /> @c.Age</span></div>
+                    @if (c.Column == "triage") { <button class="case-btn" @onclick="() => Open(c)">ตรวจสอบสำนวน ›</button> }
+                    else { <button class="case-btn primary" @onclick="() => Open(c)">พิจารณาตัดสินข้อพิพาท</button> }
+                </div>
+            }
+            @if (!Cases(col.Key).Any()) { <div class="empty">ไม่มีรายการในคอลัมน์นี้</div> }
+        </div>
+    }
+</div>
+
+@if (selected != null)
+{
+    <div class="drawer-backdrop" @onclick="() => selected = null">
+        <div class="drawer" @onclick:stopPropagation="true">
+            <div class="drawer-head">
+                <div style="display:flex;gap:8px;align-items:center"><strong style="color:var(--orange)">@selected.Id</strong><span class="pill red">รอคนกลางไกล่เกลี่ย (เหลือ 1 ชม.)</span></div>
+                <h2>@selected.Title</h2>
+                <div class="muted-sm">ลงทะเบียนร้องเรียน 18 ต.ค. 2024, 14:22 น. ผ่านศูนย์ข้อพิพาท มทส.</div>
+                <button class="icon-btn modal-close" @onclick="() => selected = null" aria-label="ปิด"><Icon Name="x" /></button>
+            </div>
+            <div class="drawer-body">
+                <div class="kv">
+                    <div><div class="k">ผู้ว่าจ้าง (ผู้ร้อง)</div><strong>ปิยะวัฒน์ ส.</strong><div class="muted-sm">B6710443 (วิศวกรรมคอมพิวเตอร์)</div></div>
+                    <div><div class="k">ฟรีแลนซ์ (ผู้ถูกร้อง)</div><strong>ธนกร ป.</strong><div class="muted-sm">B6802189 (เทคโนโลยีสารสนเทศ)</div></div>
+                    <div><div class="k">รหัสอ้างอิงสัญญาจ้าง:</div></div><div style="text-align:right"><strong>#ORD-9821</strong> <span class="muted-sm">(สัญญาเขียนเว็บ React+Django)</span></div>
+                    <div><div class="k">ยอดเงินที่ถูกอายัดชั่วคราว:</div></div><div style="text-align:right"><strong style="color:var(--orange)">1,800 บาท (Escrow Hold)</strong></div>
+                </div>
+
+                <div class="section-label">สรุปข้อร้องเรียนและพยานหลักฐาน</div>
+                <div class="kv" style="grid-template-columns:1fr;line-height:1.6;font-size:14px">ผู้ว่าจ้างระบุว่างานส่งมอบระบบ Web App ด้วย React+Django มีข้อผิดพลาดร้ายแรง ไม่สามารถเริ่มโปรเจกต์ได้และขาดฟีเจอร์ Authentication ตามใบเสนอราคา โดยฟรีแลนซ์ปฏิเสธแก้ไขภายในระยะเวลารับประกัน 48 ชั่วโมง</div>
+
+                <div class="section-label">ประวัติการให้บริการของฟรีแลนซ์</div>
+                <div class="stats3"><div><strong>1</strong><span>ประวัติถูกตักเตือน</span></div><div><strong style="color:var(--on-surface)">4.8★</strong><span>คะแนนรีวิวเฉลี่ย</span></div><div><strong style="color:var(--on-surface)">12</strong><span>งานสำเร็จทั้งหมด</span></div></div>
+
+                <div class="field-row" style="margin-top:22px"><div class="section-label" style="margin:0">เอกสารหลักฐานและไฟล์แนบ (3 รายการ)</div><a class="link-btn" href="#" @onclick:preventDefault>ดาวน์โหลดทั้งหมด (.ZIP)</a></div>
+                <div style="margin-top:8px">
+                    <div class="evidence"><span class="thumb"><Icon Name="file" /></span><div class="meta"><strong>บันทึกข้อความแชตและข้อตกลง.pdf</strong>1.4 MB • สำเนาการสนทนาฉบับสมบูรณ์ (SHA-256)</div><Icon Name="eye" Size="16" /></div>
+                    <div class="evidence"><span class="thumb"><Icon Name="image" /></span><div class="meta"><strong>ภาพหน้าจอ_Build_Error.png</strong>820 KB • รายการ Terminal Log ข้อผิดพลาด</div><Icon Name="eye" Size="16" /></div>
+                    <div class="evidence"><span class="thumb"><Icon Name="box" /></span><div class="meta"><strong>ไฟล์งานที่ส่งมอบ.zip</strong>18.5 MB • แพ็กเกจซอร์สโค้ดของงาน</div><Icon Name="download" Size="16" /></div>
+                </div>
+
+                <div class="section-label accent">คำสั่งยุติข้อพิพาทและมาตรการวินัย</div>
+                <label class="muted-sm">เลือกมาตรการบังคับใช้</label>
+                <select class="select full" style="margin:4px 0 12px" @bind="action">
+                    <option>คืนเงินให้ผู้ว่าจ้าง 100% และออกหนังสือตักเตือนฟรีแลนซ์</option>
+                    <option>แบ่งสัดส่วนการชำระเงิน (ไกล่เกลี่ย 50:50)</option>
+                    <option>อนุมัติปล่อยเงินให้ฟรีแลนซ์ (คำร้องไม่มีมูล)</option>
+                    <option>ส่งเรื่องต่อคณะกรรมการวินัยนักศึกษา มทส.</option>
+                </select>
+                <label class="muted-sm">บันทึกเหตุผลประกอบคำวินิจฉัยของผู้ดูแลระบบ</label>
+                <textarea class="textarea" rows="4" style="margin-top:4px" @bind="notes"></textarea>
+            </div>
+            <div class="drawer-foot">
+                <button class="btn outline" @onclick="() => selected = null">ยกเลิก</button>
+                <button class="btn primary" disabled="@(notes.Trim().Length == 0)" @onclick="Enforce"><Icon Name="gavel" Size="16" /> บังคับใช้คำสั่งตัดสินข้อพิพาท</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    List<DisputeCase> all = MockData.Disputes();
+    DisputeCase? selected;
+    string filter = "all", action = "คืนเงินให้ผู้ว่าจ้าง 100% และออกหนังสือตักเตือนฟรีแลนซ์", toast;
+    string notes = "ตรวจสอบข้อบกพร่องตามเอกสาร Terminal Error พบว่าโค้ดไม่สมบูรณ์ตามสเปกสัญญาจ้าง เห็นควรให้ไกล่เกลี่ยคืนเงินให้ผู้ว่าจ้างเต็มจำนวน 1,800 บาท และออกหนังสือแจ้งเตือนแก่นักศึกษาผู้รับจ้าง";
+
+    record Col(string Key, string Title, string Color);
+    record Filt(string Key, string Label, int Count);
+    Col[] columns = { new("triage", "รอรับเรื่องตรวจสอบ (Pending)", "#B91C1C"), new("investigation", "กำลังสอบสวน (In Investigation)", "#FE6E00"), new("resolved", "ยุติเรื่องแล้ว (Resolved)", "#00C758") };
+    Filt[] filters = { new("all", "ข้อพิพาททั้งหมด", 14), new("plagiarism", "ละเมิดลิขสิทธิ์", 4), new("payment", "ธุรกรรมนอกระบบ", 5), new("spec", "ส่งงานไม่ตรงสเปก", 5) };
+
+    List<DisputeCase> Cases(string col) => all.Where(c => c.Column == col && Matches(c)).ToList();
+    bool Matches(DisputeCase c) => filter switch
+    {
+        "plagiarism" => c.Type.Contains("ลิขสิทธิ์"),
+        "payment" => c.Type.Contains("นอกระบบ"),
+        "spec" => c.Type.Contains("สเปก") || c.Type.Contains("ล่าช้า"),
+        _ => true
+    };
+    static string UrgKind(string u) => u switch { "เร่งด่วนสูง" => "red", "ปานกลาง" => "orange", _ => "gray" };
+
+    void Open(DisputeCase c) { selected = c; }
+    void Enforce()
+    {
+        if (selected == null) return;
+        selected.Column = "resolved";
+        Toast($"ตัดสินข้อพิพาท {selected.Id}: {action} และบันทึกลง Audit Trail แล้ว");
+        selected = null;
+    }
+    void Toast(string m) { toast = m; _ = Task.Delay(3000).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "ตรวจสอบเนื้อหาและข้อพิพาท", "ศูนย์จัดการข้อพิพาทและรายงานความไม่เหมาะสม" }, "ค้นหารหัสข้อพิพาท, รหัสนักศึกษา, หรือคู่กรณี...");
+}

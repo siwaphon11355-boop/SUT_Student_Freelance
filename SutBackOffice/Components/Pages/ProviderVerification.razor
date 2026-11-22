@@ -1,0 +1,123 @@
+@page "/providers/verify"
+@page "/providers/verify/{StudentId}"
+@inject ShellState Shell
+@inject NavigationManager Nav
+
+<PageTitle>หน้าต่างตรวจสอบบัตรนักศึกษาและอนุมัติร้านค้า · SUT Freelance</PageTitle>
+
+<div class="verif-bar">
+    <span class="pill red dotted">คิวด่วนพิเศษ</span>
+    <strong>คำขอที่ @(index + 1) จาก 18 ในคิวการตรวจสอบเร่งด่วน</strong>
+    <span class="muted-sm">• ระยะเวลา SLA เฉลี่ยที่เหลือ: 2 ชม. 14 นาที</span>
+    <span class="spacer"></span>
+    <button class="btn outline sm" disabled="@(index == 0)" @onclick="() => Move(-1)"><Icon Name="arrow-left" Size="14" /> คำขอก่อนหน้า</button>
+    <button class="btn outline sm" @onclick="() => Move(1)">คำขอถัดไป <Icon Name="arrow-right" Size="14" /></button>
+</div>
+
+@if (decision != null)
+{
+    <div class="card card-pad mb" style="border-color:@(decision == "approved" ? "#86efac" : "#fca5a5");background:@(decision == "approved" ? "#F0FDF4" : "#FEF2F2")">
+        <strong>@(decision == "approved" ? "อนุมัติเปิดร้านค้าและปรับสิทธิ์เป็น Provider เรียบร้อยแล้ว!" : decision == "rejected" ? "ปฏิเสธคำขอเปิดร้านค้าแล้ว ระบบได้ส่งอีเมลแจ้งเหตุผลไปยังนักศึกษา" : "ส่งคำขอเอกสารยืนยันตัวตนเพิ่มเติมไปยังนักศึกษาแล้ว")</strong>
+        <span class="muted"> บันทึกการกระทำลงในระบบ Audit Trail แล้ว</span>
+        <a href="/providers" style="margin-left:12px">กลับไปยังรายชื่อร้านค้า →</a>
+    </div>
+}
+
+<div class="verif-grid">
+    <div class="viewer">
+        <div class="viewer-tabs">
+            <button class="doc-tab @(doc == 0 ? "on" : "")" @onclick="() => doc = 0"><Icon Name="id-card" Size="16" />1. บัตรนักศึกษา มทส.</button>
+            <button class="doc-tab @(doc == 1 ? "on" : "")" @onclick="() => doc = 1"><Icon Name="id" Size="16" />2. บัตรประชาชนไทย</button>
+            <button class="doc-tab @(doc == 2 ? "on" : "")" @onclick="() => doc = 2"><Icon Name="file" Size="16" />3. ใบเสร็จลงทะเบียน REG</button>
+            <div class="viewer-tools">
+                <button class="icon-btn" @onclick="() => zoom = Math.Min(2, zoom + .1)" aria-label="ซูมเข้า"><Icon Name="zoom-in" Size="16" /></button>
+                <button class="icon-btn" @onclick="() => zoom = Math.Max(.6, zoom - .1)" aria-label="ซูมออก"><Icon Name="zoom-out" Size="16" /></button>
+                <button class="icon-btn" @onclick="() => rotate = (rotate + 90) % 360" aria-label="หมุนภาพ"><Icon Name="refresh" Size="16" /></button>
+                <button class="link-btn" style="color:var(--on-surface-muted)" @onclick="() => { zoom = 1; rotate = 0; }">รีเซ็ต (@((int)(zoom * 100))%)</button>
+                <button class="icon-btn" aria-label="เต็มจอ"><Icon Name="expand" Size="16" /></button>
+            </div>
+        </div>
+        <div class="viewer-stage">
+            <div class="ocr-badge"><Icon Name="check-circle" Size="14" /> ตรวจสอบข้อมูล OCR สำเร็จ</div>
+            <div class="id-card" style="transform:scale(@zoom.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)) rotate(@(rotate)deg)">
+                <div class="top">
+                    <span class="logo">SUT</span>
+                    <div><strong>SURANAREE UNIVERSITY OF TECHNOLOGY</strong><div class="muted-sm">มหาวิทยาลัยเทคโนโลยีสุรนารี • บัตรประจำตัวนักศึกษา</div></div>
+                    <span class="seal"><Icon Name="star" Size="16" /></span>
+                </div>
+                <div class="mid">
+                    <div class="id-photo"><span>ยืนยันตัวตน มทส. แล้ว</span></div>
+                    <div class="id-fields">
+                        <small>ชื่อ - สกุลนักศึกษา</small>
+                        <strong>ธนกร ประเสริฐ</strong><div>Thanakorn Prasert</div>
+                        <div style="display:flex;gap:30px">
+                            <div><small>รหัสนักศึกษา</small><strong class="orange">B6814290</strong></div>
+                            <div><small>บัตรหมดอายุ</small><strong>05/2028</strong></div>
+                        </div>
+                        <small>สำนักวิชา</small>
+                        <strong style="font-size:13px">สำนักวิชาวิศวกรรมศาสตร์ (วิศวกรรมคอมพิวเตอร์)</strong>
+                    </div>
+                </div>
+                <div class="bar"><span>||| || ||||| |||| ||| ||||||| B6814290</span><span>สถานะ: ปกติ</span></div>
+            </div>
+        </div>
+        <div class="scan-meta"><span>เอกสารแนบจากระบบลงทะเบียนนักศึกษา มทส.</span><span>อัปโหลดเมื่อ 24 ต.ค. 2567</span></div>
+    </div>
+
+    <div class="cred-card">
+        <div class="cred-head">
+            <div><h2>เปรียบเทียบข้อมูลกับสำนักทะเบียน (REG DB)</h2></div>
+            <span class="pill green"><Icon Name="check-circle" Size="13" /> ซิงค์ข้อมูลสำเร็จ</span>
+        </div>
+
+        <div class="check-block">
+            <div class="check-title"><span><Icon Name="id-card" Size="16" /> รหัสนักศึกษา</span><span class="pill green"><Icon Name="check-circle" Size="12" /> ตรงกัน</span></div>
+            <div class="cmp"><div>บนเอกสาร: <strong>B6814290</strong></div><div>ในทะเบียน REG: <strong>B6814290</strong></div></div>
+        </div>
+        <div class="check-block">
+            <div class="check-title"><span><Icon Name="user" Size="16" /> ชื่อ-นามสกุล</span><span class="pill green"><Icon Name="check-circle" Size="12" /> ตรงกัน</span></div>
+            <div class="cmp"><div>ภาษาไทย: <strong>ธนกร ประเสริฐ</strong></div><div>ภาษาอังกฤษ: <strong>Thanakorn Prasert</strong></div></div>
+        </div>
+        <div class="check-block">
+            <div class="check-title"><span><Icon Name="graduation" Size="16" /> สถานะการศึกษา</span><span class="pill blue">ลงทะเบียนปกติ</span></div>
+            <div class="cmp" style="grid-template-columns:1fr"><div><strong>สำนักวิชาวิศวกรรมศาสตร์ (คอมพิวเตอร์) ชั้นปีที่ 3</strong> • ภาค 1/2567 (18 หน่วยกิต)</div></div>
+        </div>
+        <div class="check-block">
+            <div class="check-title"><span><Icon Name="shield" Size="16" /> ประวัติวินัยนักศึกษา</span><span class="pill green"><Icon Name="check-circle" Size="12" /> ไม่มีประวัติลงโทษ</span></div>
+            <div class="cmp" style="grid-template-columns:1fr"><div>ไม่พบประวัติการทุจริตหรือทำผิดวินัย มีสิทธิ์เปิดร้านค้าฟรีแลนซ์</div></div>
+        </div>
+        <div class="cmp" style="margin:14px 16px 0">
+            <div style="background:var(--bg)"><span class="muted-sm">หมวดหมู่บริการที่ขอเปิด</span><strong>ไอทีและโค้ดดิ้ง</strong></div>
+            <div style="background:var(--bg)"><span class="muted-sm">เวลาที่ส่งคำขอ</span><strong>วันนี้ 09:15 น.</strong></div>
+        </div>
+        <div class="attest">
+            <h3>ยืนยันการตรวจสอบ:</h3>
+            <label><input type="checkbox" @bind="a1" /> ภาพถ่ายบัตรตรงกับผู้สมัครและฐานข้อมูล REG</label>
+            <label><input type="checkbox" @bind="a2" /> บัตรยังไม่หมดอายุและข้อมูลครบถ้วน</label>
+            <label><input type="checkbox" @bind="a3" /> ตรวจสอบตามระเบียบมหาวิทยาลัยและ PDPA</label>
+        </div>
+    </div>
+</div>
+
+<div class="verif-foot">
+    <span class="who"><Icon Name="shield" Size="14" Class="bad" /> ผู้ตรวจสอบ: <strong>ดร. พรชัย ก.</strong></span>
+    <span class="spacer"></span>
+    <button class="btn danger-outline" @onclick='() => decision = "rejected"'><Icon Name="x" Size="16" /> ปฏิเสธคำขอ</button>
+    <button class="btn outline" @onclick='() => decision = "docs"'><Icon Name="file" Size="16" /> ขอเอกสารเพิ่ม</button>
+    <button class="btn success" disabled="@(!(a1 && a2 && a3))" title="@(a1 && a2 && a3 ? "" : "กรุณาติ๊กยืนยันการตรวจสอบครบทุกข้อก่อน")" @onclick='() => decision = "approved"'><Icon Name="check-circle" Size="16" /> อนุมัติเปิดร้านค้า ✓</button>
+</div>
+
+@code {
+    [Parameter] public string? StudentId { get; set; }
+
+    int index = 4;
+    int doc, rotate;
+    double zoom = 1;
+    bool a1 = true, a2 = true, a3 = true;
+    string? decision;
+
+    void Move(int d) { index = Math.Clamp(index + d, 0, 17); decision = null; }
+
+    protected override void OnInitialized()
+        => Shell.Set(new[] { "ตรวจสอบและอนุมัติร้านค้า", "การตรวจสอบคำขอ", $"APP-2024-0892 ({StudentId ?? "B6814290"})" }, "ค้นหาคำขออนุมัติร้านค้า...");
+}

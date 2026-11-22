@@ -1,0 +1,92 @@
+@page "/users"
+@inject ShellState Shell
+
+<PageTitle>รายชื่อผู้ใช้งานนักศึกษาทั้งหมด · SUT Freelance</PageTitle>
+
+<PageHeader Title="รายชื่อผู้ใช้งานนักศึกษาทั้งหมด">
+    <a class="btn outline" href="/users/sanctions"><Icon Name="gavel" Size="16" /> ควบคุมสถานะและบทลงโทษ</a>
+    <button class="btn outline" @onclick="ExportCsv"><Icon Name="download" Size="16" /> ส่งออก CSV</button>
+    <button class="btn primary"><Icon Name="edit" Size="16" /> + เพิ่มบันทึกผู้ดูแล</button>
+</PageHeader>
+
+<div class="card mb">
+    <div class="filter-bar">
+        <label class="search-box"><Icon Name="search" Size="16" /><input placeholder="ค้นหารหัสนักศึกษา (เช่น B68...) หรือชื่อ-นามสกุล" @bind="search" @bind:event="oninput" /></label>
+        <select class="select" @bind="faculty"><option value="">สำนักวิชาทั้งหมด</option>@foreach (var f in MockData.Faculties) { <option>@f</option> }</select>
+        <select class="select" @bind="status"><option value="">สถานะบัญชีทั้งหมด</option><option>ปกติ</option><option>ระงับชั่วคราว</option><option>ถูกแบน</option></select>
+        @if (!string.IsNullOrEmpty(search) || !string.IsNullOrEmpty(faculty) || !string.IsNullOrEmpty(status))
+        {
+            <button class="btn ghost sm" @onclick="Reset">ล้างตัวกรอง</button>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>รหัสนักศึกษา</th><th>ชื่อ-นามสกุล</th><th>สำนักวิชา / สาขาวิชา</th><th>วันที่ลงทะเบียน</th><th>สถานะ</th><th class="right">การจัดการ</th></tr></thead>
+            <tbody>
+                @foreach (var u in PageItems)
+                {
+                    <tr>
+                        <td class="id-cell">@u.Id</td>
+                        <td style="white-space:nowrap">
+                            <div class="cell-user">
+                                <span class="avatar sm">@u.Initials</span>
+                                <strong>@ShortName(u.Name)</strong>
+                            </div>
+                        </td>
+                        <td>@u.Faculty</td>
+                        <td class="muted" style="white-space:nowrap">@u.Registered</td>
+                        <td style="white-space:nowrap"><span class="pill @StatusKind(u.Status) dotted">@u.Status</span></td>
+                        <td>
+                            <div class="row-actions">
+                                <a class="link-btn" href="/users/@u.Id">ดูข้อมูล</a>
+                                @if (u.Status == "ปกติ") { <button class="btn warn sm" @onclick="() => OpenSanction(u)">ระงับบัญชี</button> }
+                                else if (u.Status == "ระงับชั่วคราว") { <button class="btn ok-outline sm" @onclick="() => Reactivate(u)">ปลดระงับ</button> }
+                                else { <button class="btn outline sm" @onclick='() => Nav.NavigateTo("/audit")'>ประวัติ</button> }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (!PageItems.Any()) { <tr><td colspan="6" class="empty">ไม่พบข้อมูลนักศึกษาที่ตรงกับตัวกรอง</td></tr> }
+            </tbody>
+        </table>
+    </div>
+    <Pager Info="@($"แสดง 1-{PageItems.Count} จาก 3,420 บัญชีนักศึกษา")" @bind-Page="page" TotalPages="342" />
+</div>
+
+<SanctionModal @bind-Show="showSanction" TargetName="@(target?.Name ?? "")" TargetId="@(target?.Id ?? "")" TargetRole="นักศึกษา มทส." TargetEmail="@(target?.Email ?? "")" OnConfirmed="ConfirmSanction" />
+
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    [Inject] NavigationManager Nav { get; set; } = default!;
+
+    List<StudentUser> all = MockData.Students();
+    string search = "", faculty = "", status = "", toast;
+    int page = 1;
+    bool showSanction;
+    StudentUser? target;
+
+    List<StudentUser> PageItems => all.Where(u =>
+        (string.IsNullOrWhiteSpace(search) || u.Id.Contains(search, StringComparison.OrdinalIgnoreCase) || u.Name.Contains(search, StringComparison.OrdinalIgnoreCase)) &&
+        (faculty == "" || u.Faculty == faculty) && (status == "" || u.Status == status)).ToList();
+
+    static string ShortName(string n) => n.Contains('(') ? n[..n.IndexOf('(')].Trim() : n;
+    static string StatusKind(string s) => s switch { "ปกติ" => "green", "ระงับชั่วคราว" => "amber", _ => "red" };
+
+    void Reset() { search = faculty = status = ""; }
+    void OpenSanction(StudentUser u) { target = u; showSanction = true; }
+    void Reactivate(StudentUser u) { u.Status = "ปกติ"; Toast($"ปลดระงับบัญชี {u.Name} เรียบร้อยแล้ว"); }
+    void ConfirmSanction(string duration)
+    {
+        if (target == null) return;
+        target.Status = duration == "perm" ? "ถูกแบน" : "ระงับชั่วคราว";
+        Toast($"ดำเนินการลงโทษ {target.Name} ({(duration == "perm" ? "ระงับถาวร" : $"ระงับ {duration} วัน")}) เรียบร้อยแล้ว");
+    }
+    void ExportCsv() => Toast("กำลังส่งออกข้อมูลรายชื่อนักศึกษาเป็นไฟล์ CSV...");
+    void Toast(string m) { toast = m; _ = Task.Delay(2500).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "การจัดการผู้ใช้", "รายชื่อนักศึกษา" }, "ค้นหารหัสนักศึกษา หรือชื่อ-นามสกุล...");
+}

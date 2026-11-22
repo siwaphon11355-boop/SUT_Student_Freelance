@@ -1,0 +1,14 @@
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.AdminLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(Layout.AdminLayout)">
+            <div class="card" style="padding:32px;text-align:center">
+                <h2>ไม่พบหน้าที่คุณต้องการ</h2>
+                <p class="muted" style="margin:8px 0 16px">ไม่พบเส้นทางหน้าเว็บระบบจัดการหลังบ้านที่ระบุ</p>
+                <a class="btn primary" href="/dashboard">กลับสู่แดชบอร์ดภาพรวม</a>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>

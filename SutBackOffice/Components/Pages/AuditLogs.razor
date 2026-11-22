@@ -1,0 +1,111 @@
+@page "/audit"
+@inject ShellState Shell
+
+<PageTitle>บันทึกการตรวจสอบระบบและความปลอดภัย (Audit Trail) · SUT Freelance</PageTitle>
+
+<PageHeader Title="บันทึกประวัติการตรวจสอบระบบ">
+    <label class="tail"><i class="dot" style="background:var(--green)"></i> ติดตามสด <input type="checkbox" @bind="live" /></label>
+    <button class="btn primary" @onclick='() => Toast("เริ่มส่งออกรายงานบันทึกการตรวจสอบระบบแล้ว")'><Icon Name="download" Size="16" /> ส่งออก CSV</button>
+</PageHeader>
+
+<div class="grid g4 mb">
+    <div class="card stat"><div class="label">บันทึกเหตุการณ์วันนี้</div><div class="value" style="font-size:26px">18,420 <small>รายการ</small></div></div>
+    <div class="card stat"><div class="label">กิจกรรมระดับวิกฤต</div><div class="value" style="font-size:26px">7 <small>รายการ</small></div></div>
+    <div class="card stat"><div class="label">เข้าสู่ระบบล้มเหลว</div><div class="value" style="font-size:26px">24 <small>ครั้ง</small></div></div>
+    <div class="card stat"><div class="label">สถานะการจัดเก็บ</div><div class="value" style="font-size:24px;color:var(--green-700)">สมบูรณ์ 100%</div></div>
+</div>
+
+<div class="card mb">
+    <div class="filter-bar">
+        <label class="search-box"><Icon Name="search" Size="16" /><input placeholder="ค้นหารหัสนักศึกษา, ผู้ดำเนินการ, หรือกิจกรรม..." @bind="query" @bind:event="oninput" /></label>
+        <select class="select" @bind="actor"><option value="">ผู้ดำเนินการทั้งหมด</option>@foreach (var a in MockData.AuditEvents().Select(e => e.Actor).Distinct()) { <option>@a</option> }</select>
+        <select class="select" @bind="action"><option value="">ประเภทกิจกรรมทั้งหมด</option>@foreach (var a in MockData.AuditEvents().Select(e => e.Action).Distinct()) { <option>@a</option> }</select>
+        <select class="select"><option>วันนี้ (24 ชม. ล่าสุด)</option><option>7 วันล่าสุด</option></select>
+        @if (query != "" || actor != "" || action != "")
+        {
+            <button class="btn ghost sm" @onclick="Reset">ล้างตัวกรอง</button>
+        }
+    </div>
+</div>
+
+<div class="card mb">
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>วัน-เวลา</th><th>ผู้ดำเนินการ</th><th>ประเภทกิจกรรม</th><th>รายละเอียดการกระทำ</th><th>Client IP</th></tr></thead>
+            <tbody>
+                @foreach (var e in items)
+                {
+                    <tr style="cursor:pointer;@(sel == e ? "background:var(--orange-50)" : "")" @onclick="() => sel = e">
+                        <td class="log-time">@e.Time</td>
+                        <td><span style="font-weight:700">@e.Actor</span></td>
+                        <td><span class="act @e.ActionKind">[@e.Action]</span></td>
+                        <td><strong>@e.TargetNote</strong></td>
+                        <td class="log-ip">@e.Ip</td>
+                    </tr>
+                }
+                @if (!items.Any()) { <tr><td colspan="5" class="empty">ไม่พบบันทึกเหตุการณ์ที่ตรงกับตัวกรอง</td></tr> }
+            </tbody>
+        </table>
+    </div>
+    <div class="pager"><span>แสดง <strong>1-@items.Count</strong> จาก <strong>18,420</strong> รายการ</span>
+        <div class="pager-controls"><button class="page-btn" disabled>ก่อนหน้า</button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">3</button><span class="page-gap">…</span><button class="page-btn">1,842</button><button class="page-btn">ถัดไป</button></div></div>
+</div>
+
+<div class="code-diff">
+    <div class="code-head">
+        <h3><Icon Name="code" /> รายละเอียดการเปลี่ยนแปลงข้อมูล <span class="act red">[@sel.Action]</span></h3>
+        <button class="btn sm" style="background:#4A423A;color:#fafaf9;border-color:#574F47" @onclick='() => Toast("คัดลอกข้อมูล JSON เรียบร้อยแล้ว")'><Icon Name="copy" Size="14" /> คัดลอก JSON</button>
+    </div>
+    <div class="code-cols">
+        <div class="code-col">
+            <div class="ch"><span style="color:#f87171">⊖ ก่อนแก้ไข</span></div>
+            @foreach (var l in before) { <div class="code-line @l.Kind"><span class="ln">@l.N</span><span>@((MarkupString)l.Html)</span></div> }
+        </div>
+        <div class="code-col">
+            <div class="ch"><span style="color:#4ade80">⊕ หลังแก้ไข</span></div>
+            @foreach (var l in after) { <div class="code-line @l.Kind"><span class="ln">@l.N</span><span>@((MarkupString)l.Html)</span></div> }
+        </div>
+    </div>
+</div>
+
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    List<AuditEvent> all = MockData.AuditEvents();
+    AuditEvent sel = MockData.AuditEvents()[0];
+    string query = "", actor = "", action = "", toast;
+    bool live = true;
+
+    record Line(int N, string Html, string Kind);
+    static string K(string k) => $"<span class='k'>\"{k}\"</span>";
+    static string S(string v) => $"<span class='s'>\"{v}\"</span>";
+    static string N(string v) => $"<span class='n'>{v}</span>";
+    static string B(string v) => $"<span class='b'>{v}</span>";
+
+    Line[] before => new[]
+    {
+        new Line(1, "{", ""), new Line(2, $"  {K("entity_id")}: {S("B6790012")},", ""), new Line(3, $"  {K("student_name")}: {S("นายสมเกียรติ สิทธิพร")},", ""),
+        new Line(4, $"  {K("faculty")}: {S("สำนักวิชาวิศวกรรมศาสตร์")},", ""),
+        new Line(5, $"  {K("account_status")}: {S("ACTIVE")},", "del"), new Line(6, $"  {K("can_post_gigs")}: {B("true")},", "del"), new Line(7, $"  {K("sanctions_count")}: {N("1")},", "del"),
+        new Line(8, $"  {K("reputation_score")}: {N("4.12")},", ""), new Line(9, $"  {K("escrow_balance_thb")}: {N("0.00")},", ""),
+        new Line(10, $"  {K("academic_integrity_lock")}: {B("false")},", ""), new Line(11, $"  {K("updated_at")}: {S("2026-10-10T09:15:00+07:00")}", ""), new Line(12, "}", "")
+    };
+    Line[] after => new[]
+    {
+        new Line(1, "{", ""), new Line(2, $"  {K("entity_id")}: {S("B6790012")},", ""), new Line(3, $"  {K("student_name")}: {S("นายสมเกียรติ สิทธิพร")},", ""),
+        new Line(4, $"  {K("faculty")}: {S("สำนักวิชาวิศวกรรมศาสตร์")},", ""),
+        new Line(5, $"+ {K("account_status")}: {S("PERMANENT_BANNED")},", "add"), new Line(6, $"+ {K("can_post_gigs")}: {B("false")},", "add"), new Line(7, $"+ {K("sanctions_count")}: {N("2")},", "add"),
+        new Line(8, $"+ {K("ban_reason")}: {S("ละเมิดวินัยวิชาการขั้นร้ายแรง - รับจ้างทำข้อสอบและแบบทดสอบ")},", "add"),
+        new Line(9, $"  {K("reputation_score")}: {N("0.00")},", ""), new Line(10, $"  {K("escrow_balance_thb")}: {N("0.00")},", ""),
+        new Line(11, $"+ {K("academic_integrity_lock")}: {B("true")},", "add"), new Line(12, $"  {K("updated_at")}: {S("2026-10-24T14:32:10+07:00")}", ""), new Line(13, "}", "")
+    };
+
+    List<AuditEvent> items => all.Where(e =>
+        (query == "" || e.Target.Contains(query, StringComparison.OrdinalIgnoreCase) || e.TargetNote.Contains(query, StringComparison.OrdinalIgnoreCase) || e.Action.Contains(query, StringComparison.OrdinalIgnoreCase)) &&
+        (actor == "" || e.Actor == actor) && (action == "" || e.Action == action)).ToList();
+
+    void Reset() { query = actor = action = ""; }
+    void Toast(string m) { toast = m; _ = Task.Delay(2500).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "ความปลอดภัยของระบบ", "บันทึกการตรวจสอบระบบและความปลอดภัย (Audit Trail)" }, "ค้นหารหัสเหตุการณ์, ผู้ดูแลระบบ...");
+}

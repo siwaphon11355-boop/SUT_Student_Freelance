@@ -1,0 +1,108 @@
+@page "/services"
+@inject ShellState Shell
+
+<PageTitle>รายการบริการทั้งหมดในระบบ · SUT Freelance</PageTitle>
+
+<PageHeader Title="รายการบริการทั้งหมดในระบบ" Badge="856 งาน" BadgeKind="blue">
+    <a class="btn outline" href="/services/categories"><Icon Name="tag" Size="16" /> จัดการหมวดหมู่</a>
+    <button class="btn outline"><Icon Name="download" Size="16" /> ส่งออก CSV</button>
+    <button class="btn primary" @onclick='() => Toast("เริ่มสแกนตรวจสอบคำต้องห้ามแล้ว")'><Icon Name="shield" Size="16" /> ตัวกรองคำต้องห้าม</button>
+</PageHeader>
+
+<div class="card mb">
+    <div class="filter-bar">
+        <label class="search-box"><Icon Name="search" Size="16" /><input placeholder="ค้นหาชื่องาน, รหัสบริการ, หรือชื่อผู้ให้บริการ..." @bind="search" @bind:event="oninput" /></label>
+        <select class="select" @bind="cat"><option value="">หมวดหมู่ทั้งหมด</option>@foreach (var c in cats) { <option>@c</option> }</select>
+        <select class="select" @bind="status"><option value="">สถานะทั้งหมด</option><option>เปิดให้บริการปกติ</option><option>รอการตรวจสอบ</option><option>ถูกระงับ</option></select>
+        @if (!string.IsNullOrEmpty(search) || !string.IsNullOrEmpty(cat) || !string.IsNullOrEmpty(status) || !string.IsNullOrEmpty(quick))
+        {
+            <button class="btn ghost sm" @onclick="Clear">ล้างตัวกรอง</button>
+        }
+    </div>
+    <div class="filter-bar" style="padding-top:0">
+        <div class="chips">
+            <button class="chip @(quick == "flag" ? "active" : "")" @onclick='() => quick = quick == "flag" ? "" : "flag"'>งานที่ถูกรายงาน (14)</button>
+            <button class="chip" @onclick='() => quick = ""'>มาใหม่สัปดาห์นี้ (48)</button>
+            <button class="chip">เฝ้าระวังช่วงสอบ (7)</button>
+        </div>
+        <span class="spacer"></span>
+        <label class="muted-sm">เรียงตาม: <select class="select sm"><option>อัปเดตล่าสุด</option><option>งานที่สำเร็จมากที่สุด</option><option>คะแนนรีวิวสูงสุด</option></select></label>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width:36px"><input type="checkbox" @onchange="e => items.ForEach(i => selected[i.Id] = (bool)e.Value!)" /></th>
+                    <th>ชื่องาน</th>
+                    <th>ผู้ให้บริการ</th>
+                    <th>หมวดหมู่</th>
+                    <th>ราคา</th>
+                    <th>สถานะ</th>
+                    <th class="right">การจัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var g in items)
+                {
+                    <tr class="@(g.Compliance == "แจ้งเตือนคีย์เวิร์ด" ? "row-warn" : "")">
+                        <td><input type="checkbox" checked="@(selected.GetValueOrDefault(g.Id))" @onchange="e => selected[g.Id] = (bool)e.Value!" /></td>
+                        <td>
+                            <div class="gig-title">
+                                <span class="gig-thumb" style="background:@g.Tint"></span>
+                                <div>
+                                    <strong>@g.Title</strong>
+                                    <small style="color:@(g.Compliance == "แจ้งเตือนคีย์เวิร์ด" ? "var(--red)" : "var(--on-surface-muted)")">@g.Id · @g.Age</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="white-space:nowrap"><strong>@g.Provider</strong></td>
+                        <td style="white-space:nowrap"><span class="tag">@g.Category</span></td>
+                        <td style="white-space:nowrap"><strong>@g.Price</strong></td>
+                        <td style="white-space:nowrap">
+                            <span class="pill @(g.Status == "เปิดให้บริการปกติ" ? "green" : g.Status == "รอการตรวจสอบ" ? "red" : "gray")">
+                                @(g.Status == "รอการตรวจสอบ" ? "ถูกระงับ (ผิดวินัย)" : g.Status)
+                            </span>
+                        </td>
+                        <td>
+                            <div class="row-actions">
+                                <button class="btn outline sm">รายละเอียด</button>
+                                @if (g.Status == "เปิดให้บริการปกติ")
+                                {
+                                    <button class="btn danger-outline sm" @onclick='() => Set(g, "ถูกระงับ")'>ระงับ</button>
+                                }
+                                else
+                                {
+                                    <button class="btn primary sm" @onclick='() => Set(g, "เปิดให้บริการปกติ")'>เผยแพร่</button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <Pager Info="แสดง 1-6 จาก 856 รายการบริการที่เปิดรับจ้าง" @bind-Page="page" TotalPages="86" />
+</div>
+
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    List<GigItem> all = MockData.Gigs();
+    Dictionary<string, bool> selected = new();
+    string search = "", cat = "", status = "", quick = "", toast;
+    int page = 1;
+    string[] cats => all.Select(g => g.Category).Distinct().ToArray();
+
+    List<GigItem> items => all.Where(g =>
+        (string.IsNullOrWhiteSpace(search) || g.Title.Contains(search, StringComparison.OrdinalIgnoreCase) || g.Provider.Contains(search, StringComparison.OrdinalIgnoreCase) || g.ProviderId.Contains(search, StringComparison.OrdinalIgnoreCase) || g.Id.Contains(search, StringComparison.OrdinalIgnoreCase)) &&
+        (cat == "" || g.Category == cat) && (status == "" || g.Status == status) && (quick != "flag" || g.Compliance == "แจ้งเตือนคีย์เวิร์ด")).ToList();
+
+    void Set(GigItem g, string s) { g.Status = s; Toast($"ปรับสถานะบริการ {g.Id} เป็น '{s}' เรียบร้อยแล้ว"); }
+    void Clear() { search = cat = status = quick = ""; }
+    void Toast(string m) { toast = m; _ = Task.Delay(2500).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "รายการบริการทั้งหมด", "รายการบริการที่เปิดรับจ้าง" }, "ค้นหารหัสนักศึกษา, ชื่องาน, หรือฟรีแลนซ์...");
+}

@@ -1,0 +1,11 @@
+<text x="@X" y="@Y" text-anchor="@Anchor" style="@Style">@ChildContent</text>
+
+@code {
+    // Razor treats a literal <text> tag inside @for/@foreach blocks as its own directive,
+    // so SVG labels generated in loops go through this tiny wrapper component.
+    [Parameter] public double X { get; set; }
+    [Parameter] public double Y { get; set; }
+    [Parameter] public string Anchor { get; set; } = "start";
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,102 @@
+@if (Show)
+{
+    <div class="modal-backdrop" @onclick="Close">
+        <div class="modal" @onclick:stopPropagation="true" role="dialog" aria-modal="true">
+            <div class="modal-head">
+                <span class="modal-icon"><Icon Name="alert" Size="22" /></span>
+                <div>
+                    <h2>ยืนยันการลงโทษทางวินัย: ระงับการใช้งานบัญชี</h2>
+                    <p>การดำเนินการนี้จะเพิกถอนสิทธิ์การเข้าสู่ระบบของนักศึกษาทันที ซ่อนรายการประกาศบริการที่เปิดอยู่ทั้งหมด และอายัดยอดเงินที่รอการจ่ายในระบบ Escrow ชั่วคราว</p>
+                </div>
+                <button class="icon-btn modal-close" @onclick="Close" aria-label="Close"><Icon Name="x" /></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="target-box">
+                    <div class="target-row">
+                        <span><Icon Name="user" Size="14" /> <strong>เป้าหมาย: @TargetName</strong> <code class="id-chip">รหัสนักศึกษา: @TargetId</code></span>
+                        <span class="muted-sm">สถานะปัจจุบัน: <strong>@TargetRole</strong></span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(LinkedIncident))
+                    {
+                        <div class="target-incident"><Icon Name="alert" Size="14" /> <strong>เหตุการณ์ที่เชื่อมโยง:</strong> @LinkedIncident</div>
+                    }
+                </div>
+
+                <label class="field-label">หมวดหมู่สาเหตุการกระทำผิด <b class="req">*</b></label>
+                <select class="select full" @bind="reason">
+                    <option>การทุจริตทางวิชาการและการส่งมอบงานเท็จ (Academic Dishonesty &amp; Fraudulent Deliverable)</option>
+                    <option>การคัดลอกผลงานหรือละเมิดทรัพย์สินทางปัญญา (Plagiarism / IP Infringement)</option>
+                    <option>การเรียกเก็บเงินนอกระบบหรือหลีกเลี่ยงค่าธรรมเนียม (Off-Platform Payment)</option>
+                    <option>การใช้ถ้อยคำหยาบคายหรือคุกคามผู้อื่น (Harassment / Abusive Conduct)</option>
+                    <option>การเบี้ยวงานหรือไม่ส่งมอบงานตามกำหนดซ้ำซาก (Repeated Non-Delivery)</option>
+                </select>
+                <p class="hint">หมวดหมู่นี้จะถูกบันทึกลงในทะเบียนประวัติวินัยนักศึกษาส่วนกลางของมหาวิทยาลัยอย่างถาวร</p>
+
+                <label class="field-label">ระยะเวลาการลงโทษทางวินัย <b class="req">*</b></label>
+                <div class="radio-cards">
+                    <label class="radio-card @(duration == "7" ? "selected" : "")" @onclick='() => duration = "7"'>
+                        <span class="radio-dot"></span><strong>7 วัน</strong><small>ตักเตือนชั่วคราว</small>
+                    </label>
+                    <label class="radio-card @(duration == "30" ? "selected" : "")" @onclick='() => duration = "30"'>
+                        <span class="radio-dot"></span><strong>30 วัน</strong><small>พักการใช้งานตามมติวินัย</small>
+                    </label>
+                    <label class="radio-card danger @(duration == "perm" ? "selected" : "")" @onclick='() => duration = "perm"'>
+                        <span class="radio-dot"></span><strong>ระงับถาวร (พ้นสภาพ)</strong><small>ตัดสิทธิ์จากการเป็นฟรีแลนซ์ในระบบ</small>
+                        @if (duration == "perm") { <i class="radio-flag">!</i> }
+                    </label>
+                </div>
+
+                <div class="field-row">
+                    <label class="field-label">บันทึกเหตุผลภายในของผู้ดูแลระบบ (จำเป็น) <b class="req">*</b></label>
+                    <span class="muted-sm mono">@note.Length / 500 ตัวอักษร</span>
+                </div>
+                <textarea class="textarea" maxlength="500" rows="3" @bind="note" @bind:event="oninput"></textarea>
+                <p class="hint"><Icon Name="lock" Size="12" /> มองเห็นได้เฉพาะนายทะเบียน มทส., คณบดีฝ่ายวินัยนักศึกษา และผู้ดูแลระบบระดับสูงที่ได้รับอนุญาตเท่านั้น</p>
+
+                <label class="check-row">
+                    <input type="checkbox" @bind="confirmed" />
+                    <span>ข้าพเจ้ายืนยันว่าการลงโทษนี้เป็นไปตาม <a href="#" @onclick:preventDefault>ระเบียบวินัยนักศึกษาและจรรยาบรรณฟรีแลนซ์ มทส.</a>
+                        และอนุญาตให้ส่งคำสั่งแจ้งเตือนทางวินัยอย่างเป็นทางการไปยังอีเมลมหาวิทยาลัยของนักศึกษาโดยอัตโนมัติ (@TargetEmail)</span>
+                </label>
+            </div>
+
+            <div class="modal-foot">
+                <button class="btn outline" @onclick="Close">ยกเลิก</button>
+                <span class="spacer"></span>
+                <button class="btn soft" @onclick="Close">ขอความเห็นจากผู้ดูแลร่วม (Peer Review)</button>
+                <button class="btn danger" disabled="@(!CanSubmit)" @onclick="Submit"><Icon Name="shield" Size="16" /> ยืนยันการระงับบัญชีผู้ใช้งาน</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public EventCallback<bool> ShowChanged { get; set; }
+    [Parameter] public string TargetName { get; set; } = "";
+    [Parameter] public string TargetId { get; set; } = "";
+    [Parameter] public string TargetRole { get; set; } = "นักศึกษา";
+    [Parameter] public string? LinkedIncident { get; set; }
+    [Parameter] public string TargetEmail { get; set; } = "";
+    [Parameter] public EventCallback<string> OnConfirmed { get; set; }
+
+    string reason = "การทุจริตทางวิชาการและการส่งมอบงานเท็จ (Academic Dishonesty & Fraudulent Deliverable)";
+    string duration = "perm";
+    string note = "นักศึกษาส่งมอบผลการคำนวณทางวิศวกรรมและชุดทดสอบโปรแกรมที่เป็นเท็จทั้งหมด ซึ่งละเมิดจรรยาบรรณและความซื่อสัตย์ทางวิชาการของมหาวิทยาลัยเทคโนโลยีสุรนารีอย่างร้ายแรง ได้ส่งเรื่องต่อไปยังคณะกรรมการวินัยนักศึกษา มทส. เรียบร้อยแล้ว";
+    bool confirmed = true;
+
+    bool CanSubmit => confirmed && note.Trim().Length > 0;
+
+    async Task Close()
+    {
+        Show = false;
+        await ShowChanged.InvokeAsync(false);
+    }
+
+    async Task Submit()
+    {
+        await OnConfirmed.InvokeAsync(duration);
+        await Close();
+    }
+}

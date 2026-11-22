@@ -1,0 +1,125 @@
+@page "/settings"
+@inject ShellState Shell
+@inject IJSRuntime JS
+
+<PageTitle>การตั้งค่าระบบส่วนกลางและพารามิเตอร์นโยบาย · SUT Freelance</PageTitle>
+
+<PageHeader Title="การตั้งค่าระบบ">
+    <button class="btn outline"><Icon Name="clock" Size="16" /> ประวัติการแก้ไข</button>
+    <button class="btn outline"><Icon Name="download" Size="16" /> ส่งออก JSON</button>
+</PageHeader>
+
+<div class="settings-layout">
+    <div class="settings-nav card">
+        <h4>หมวดหมู่การตั้งค่า</h4>
+        <a class="@(sec == 1 ? "on" : "")" href="/settings#s1" @onclick='() => GoSection(1, "s1")' @onclick:preventDefault><Icon Name="wallet" Size="16" /> การเงินและค่าธรรมเนียม</a>
+        <a class="@(sec == 2 ? "on" : "")" href="/settings#s2" @onclick='() => GoSection(2, "s2")' @onclick:preventDefault><Icon Name="id-card" Size="16" /> ยืนยันตัวตนและไฟล์อัปโหลด</a>
+        <a class="@(sec == 3 ? "on" : "")" href="/settings#s3" @onclick='() => GoSection(3, "s3")' @onclick:preventDefault><Icon Name="cpu" Size="16" /> เกณฑ์คัดกรอง AI</a>
+        <a class="@(sec == 4 ? "on" : "")" href="/settings#s4" @onclick='() => GoSection(4, "s4")' @onclick:preventDefault><Icon Name="shield" Size="16" /> ความปลอดภัยและเซสชัน</a>
+    </div>
+
+    <div>
+        <section class="card sec" id="s1">
+            <div class="sec-head"><h2><Icon Name="wallet" /> 1. การเงินและค่าธรรมเนียม</h2></div>
+            <div class="cols2">
+                <div class="setting-box">
+                    <strong>ค่าธรรมเนียมมาตรฐาน (%)</strong>
+                    <div style="display:flex;gap:10px;align-items:center;margin-top:10px"><input class="input" style="width:90px;text-align:center" type="number" min="0" max="15" step="0.5" @bind="fee" @bind:after="Touch" /><span class="input" style="font-weight:600">%</span></div>
+                </div>
+                <div class="setting-box">
+                    <strong>ค่าธรรมเนียมหมวดติววิชาการ (%)</strong>
+                    <div style="display:flex;gap:10px;align-items:center;margin-top:10px"><input class="input" style="width:90px;text-align:center" type="number" min="0" max="15" step="0.5" @bind="tutorFee" @bind:after="Touch" /><span class="input" style="font-weight:600">%</span></div>
+                </div>
+            </div>
+            <div class="setting-box white" style="margin-top:12px">
+                <div class="setting-row">
+                    <h3>เปิดรับสมัครร้านค้าฟรีแลนซ์นักศึกษาใหม่</h3>
+                    <Toggle Value="registration" ValueChanged="v => Set(ref registration, v)" />
+                </div>
+                <div style="border-top:1px solid var(--outline);margin-top:14px;padding-top:12px">
+                    <strong style="font-size:13px"><Icon Name="megaphone" Size="14" Class="bad" /> ข้อความประกาศแจ้งเตือนหน้าแรก</strong>
+                    <input class="input full" style="width:100%;margin-top:8px" @bind="banner" @bind:event="oninput" />
+                </div>
+            </div>
+        </section>
+
+        <section class="card sec" id="s2">
+            <div class="sec-head"><h2><Icon Name="cloud" /> 2. ยืนยันตัวตน (KYC) และไฟล์อัปโหลด</h2></div>
+            <div class="cols2">
+                <div>
+                    <strong>ขนาดไฟล์ภาพผลงานสูงสุด (MB)</strong>
+                    <div style="display:flex;gap:10px;align-items:center;margin-top:10px"><input class="input" style="width:90px;text-align:center" type="number" min="1" max="50" @bind="maxMb" @bind:after="Touch" /><span class="input" style="font-weight:600">MB</span></div>
+                </div>
+                <div>
+                    <strong>ประเภทไฟล์ที่อนุญาต</strong>
+                    <div class="ftypes">
+                        @foreach (var t in types.Keys.ToList())
+                        {
+                            <label class="ftype"><input type="checkbox" checked="@types[t]" @onchange="e => { types[t] = (bool)e.Value!; Touch(); }" />.@t</label>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div style="border-top:1px solid var(--outline);margin-top:20px;padding-top:16px">
+                <strong>ระยะเวลาจัดเก็บไฟล์ภาพบัตรนักศึกษา (PDPA)</strong>
+                <div style="margin-top:8px">
+                    <select class="select" style="min-width:280px" @bind="retention" @bind:after="Touch"><option value="30">ลบอัตโนมัติหลังอนุมัติ 30 วัน</option><option value="7">ลบอัตโนมัติหลังอนุมัติ 7 วัน</option><option value="90">ลบอัตโนมัติหลังอนุมัติ 90 วัน</option></select>
+                </div>
+            </div>
+        </section>
+
+        <section class="card sec" id="s3">
+            <div class="sec-head"><h2><Icon Name="cpu" /> 3. เกณฑ์การคัดกรอง AI</h2></div>
+            <div class="setting-box" style="padding:18px">
+                <div class="setting-row"><strong style="font-size:14px">ระดับความไวในการแจ้งเตือนรีวิวเชิงลบ</strong><div class="num-big" style="color:var(--orange)">@threshold.ToString("0.00")</div></div>
+                <input type="range" class="range" min="0" max="1" step="0.05" @bind="threshold" @bind:event="oninput" @bind:after="Touch" style="margin-top:12px" />
+                <div class="field-row mono muted-sm"><span>0.0 (ผ่อนปรน)</span><span>0.50 (ปานกลาง)</span><span style="color:var(--orange);font-weight:700">0.75 (แนะนำ)</span><span>1.0 (เข้มงวด)</span></div>
+            </div>
+            <div class="setting-row" style="align-items:center"><strong>แจ้งเตือนรีวิวอัตโนมัติเมื่อคะแนนต่ำกว่า</strong><select class="select" style="min-width:220px" @bind="autoFlag" @bind:after="Touch"><option>1 ดาวเท่านั้น</option><option>2 ดาวและต่ำกว่า</option><option>3 ดาวและต่ำกว่า</option></select></div>
+        </section>
+
+        <section class="card sec" id="s4">
+            <div class="sec-head"><h2><Icon Name="lock" /> 4. ความปลอดภัยและเซสชันผู้ดูแลระบบ</h2></div>
+            <div class="setting-box">
+                <div class="setting-row"><h3>บังคับใช้การยืนยันตัวตนสองขั้นตอน (2FA) ผ่าน SUT OTP</h3><Toggle Value="twoFactor" ValueChanged="v => Set(ref twoFactor, v)" /></div>
+            </div>
+            <div class="setting-box">
+                <div class="setting-row"><h3>อนุญาตเฉพาะเครือข่ายภายในมหาวิทยาลัย (SUT Campus / VPN)</h3><Toggle Value="ipRestrict" ValueChanged="v => Set(ref ipRestrict, v)" /></div>
+            </div>
+        </section>
+
+        <div class="savebar">
+            <div class="status"><i class="dot orange" style="margin:0"></i> มีการแก้ไข @modified รายการที่ยังไม่บันทึก</div>
+            <span class="spacer"></span>
+            <button class="btn outline" @onclick="Discard" disabled="@(modified == 0)">ยกเลิก</button>
+            <button class="btn primary" @onclick="Save"><Icon Name="check-circle" Size="16" /> บันทึกการตั้งค่า</button>
+        </div>
+    </div>
+</div>
+
+@if (toast != null) { <div class="toast"><Icon Name="check-circle" /> @toast</div> }
+
+@code {
+    int sec = 1, modified = 2;
+    bool registration = true, twoFactor = true, ipRestrict = true;
+    string banner = "ประกาศ: ระบบ SUT Freelance จะปิดปรับปรุงเซิร์ฟเวอร์ประจำสัปดาห์ในวันเสาร์ เวลา 02:00 - 04:00 น.";
+    int maxMb = 5;
+    string retention = "30", autoFlag = "2 ดาวและต่ำกว่า";
+    double threshold = 0.75, fee = 5.0, tutorFee = 3.0;
+    Dictionary<string, bool> types = new() { ["JPG"] = true, ["PNG"] = true, ["PDF"] = true, ["ZIP"] = true, ["DOCX"] = false };
+    string? toast;
+
+    async Task GoSection(int s, string id)
+    {
+        sec = s;
+        await JS.InvokeVoidAsync("eval", $"document.getElementById('{id}')?.scrollIntoView({{behavior:'smooth',block:'start'}})");
+    }
+
+    void Touch() { modified++; }
+    void Set(ref bool field, bool v) { field = v; Touch(); }
+    void Discard() { modified = 0; maxMb = 5; retention = "30"; threshold = .75; fee = 5.0; tutorFee = 3.0; autoFlag = "2 ดาวและต่ำกว่า"; registration = true; }
+    void Save() { Toast($"บันทึกการตั้งค่าเรียบร้อยแล้ว ({modified} รายการ)"); modified = 0; }
+    void Toast(string m) { toast = m; _ = Task.Delay(3000).ContinueWith(_ => { toast = null; InvokeAsync(StateHasChanged); }); }
+
+    protected override void OnInitialized() => Shell.Set(new[] { "การตั้งค่า", "ตั้งค่าระบบส่วนกลางและพารามิเตอร์นโยบาย" }, "ค้นหาการตั้งค่า, นโยบาย, หรือพารามิเตอร์...");
+}
